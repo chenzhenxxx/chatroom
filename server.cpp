@@ -1,108 +1,95 @@
-#include <algorithm>
-#include <arpa/inet.h>
-#include <asm-generic/socket.h>
-#include <bits/types/FILE.h>
-#include <chrono>
-#include <climits>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <deque>
-#include <exception>
-#include <fcntl.h>
-#include <memory>
-#include <mutex>
-#include <ostream>
-#include <random>
-#include <stdexcept>
-#include <stdlib.h>
-#include <string>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <thread>
+#include <arpa/inet.h>
 #include <unistd.h>
+#include <iostream>
+#include <string.h>
+#include <sys/time.h>
 #include <vector>
-#include<sys/epoll.h>
-#include<iostream>
+#include <errno.h>
+#include <sys/epoll.h>
+#include<fcntl.h>
+#define PORT 10000
+#define MAXLEN 4096
 using namespace std;
-
 int main()
 {
-  struct sockaddr_in svaddr;
-  struct sockaddr_in claddr;
-  socklen_t addrlen;
-  int sfd=socket(AF_INET,SOCK_STREAM,0);
-  int cfd;
-  bzero(&svaddr,sizeof(svaddr));
-  svaddr.sin_family=AF_INET;
-  svaddr.sin_port=htons(5555);
-  svaddr.sin_addr.s_addr=htonl(INADDR_ANY);
-  bind(sfd,(struct sockaddr *)&svaddr,sizeof(svaddr));
-  listen(sfd,100);
-  int len=0;
-  int epollfd=epoll_create(10);
-  if(epollfd==-1)
-   {
-       cout<<"epoll create error ."<<endl;
-       close(sfd);
-       return -1;
-   }
-   epoll_event ev;
-   ev.events=EPOLLIN;
-   if(epoll_ctl(epollfd,EPOLL_CTL_ADD,sfd,&ev)==-1)
-   {
+    struct sockaddr_in serveraddr;
+    int listenfd;
+    int len;
+    char buf[MAXLEN];
 
-   }
-   while(1)
-   {
-       epoll_event epoll_events[4096];
-       int n=epoll_wait(epollfd,epoll_events,4096,1000);
-       if(n<0)
-       {
-           if(errno==EINTR)
-           {
-               continue;
-           }
-           break;
-       }
-       else if(n==0)
-       {
-           continue;
-       }
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons(PORT);
+    bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
+    listen(listenfd, 20);
+    int epollfd = epoll_create(10);
+    epoll_event ev;
+    ev.events = EPOLLIN|EPOLLET;
+    int flag=fcntl(listenfd,F_GETFL);
+    flag|=O_NONBLOCK;
+    fcntl(listenfd,F_SETFL,flag);
+    ev.data.fd = listenfd;
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, listenfd, &ev);
 
-        for(int i=0;i<n;i++)
+    while (1)
+    {
+        epoll_event events[4096];
+        int n = epoll_wait(epollfd, events, 4096, -1);
+        printf("%d\n",n);
+        if (n < 0)
         {
-            if(epoll_events[i].events==EPOLLIN){
-                if(epoll_events->data.fd==sfd)
+            // 被信号中断
+            if (errno == EINTR)
+                continue;
+            // 出错,退出
+            break;
+        }
+        else if (n == 0)
+        {
+            // 超时,继续
+            continue;
+        }
+        for (int i = 0; i < n; i++)
+        {    
+            if (events[i].events & EPOLLIN)
+            {
+                if (events[i].data.fd == listenfd)
                 {
-                    struct sockaddr_in clientaddr;
-                    socklen_t clientaddrlen=sizeof(clientaddr);
-                    int clientfd=accept(sfd,(struct sockaddr *)&clientaddr,&clientaddrlen);
-                    if(clientfd==-1)
-                     {
-                         break;
-                     }
-                    epoll_event ev;
-                    ev.data.fd=clientfd;
-                    ev.events=EPOLLIN;
-                    if(epoll_ctl(epollfd,EPOLL_CTL_ADD,clientfd,&ev)==-1)
-                    {
-                        std::cout << "epoll_ctl error." << std::endl;
-                        close(sfd);
-                        return -1;
-                    }
+                    struct sockaddr_in cliaddr;
+                    socklen_t cliaddrlen = sizeof(cliaddr);
+                    int cfd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrlen);
+                    epoll_event evv;
+                    int flag=fcntl(cfd,F_GETFL);
+                    flag|=O_NONBLOCK;
+                    fcntl(cfd,F_SETFL,flag);
+                    evv.data.fd = cfd;
+                    evv.events = EPOLLIN|EPOLLET;
+                    epoll_ctl(epollfd, EPOLL_CTL_ADD, cfd, &evv);
                 }
 
+                else
+                {   
+                    char buf[4096];
+                    memset(buf,0,sizeof(buf));
+                    int tmpfd = events[i].data.fd;
+                    int len = recv(tmpfd, buf, 4096, 0);
+                    if (len == 0)
+                    {  
+                        epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+                        close(tmpfd);
+                        break;
+                    }
+                    else
+                    {   buf[strlen(buf)]='\0';
+                        write(STDOUT_FILENO,buf,sizeof(buf));
+                    }
+                }
             }
-
-         else 
-         {
-
-
-             
-         }
         }
-
-   }
+    }
+    close(listenfd);
 }

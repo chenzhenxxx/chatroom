@@ -1,47 +1,37 @@
-#include <algorithm>
-#include <arpa/inet.h>
-#include <asm-generic/socket.h>
-#include <bits/types/FILE.h>
-#include <chrono>
-#include <climits>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <deque>
-#include <exception>
-#include <fcntl.h>
-#include <memory>
-#include <mutex>
-#include <ostream>
-#include <random>
-#include <stdexcept>
-#include <stdlib.h>
-#include <string>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <thread>
-#include <unistd.h>
-#include <vector>
-int main()
+#include<netinet/in.h>
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<string.h>
+#include<unistd.h>
+#include<arpa/inet.h>
+#include<stdlib.h>
+#include<fcntl.h>
+#include<iostream>
+using namespace std;
+#define PORT 10000
+#define MAXLEN 4096
+int main(int argc,char **argv)
 {
-    struct sockaddr_in seraddr;
+    struct sockaddr_in serveraddr;
     int cfd;
-    cfd=socket(AF_INET,SOCK_STREAM,0);
-    if(cfd==-1)
-    {
-        perror("socket");
-        exit(-1);
-    }
-    bzero(&seraddr,sizeof(seraddr));
-    seraddr.sin_family=AF_INET;
-    inet_pton(AF_INET,"127.0.0.1",&seraddr.sin_addr);
-    seraddr.sin_port=htons(5555);
-    if(connect(cfd,(struct sockaddr*)&seraddr,sizeof(seraddr)==-1))
-    {
-            perror("connect");
-            exit(-1);
-    }
+    int len;
+    char buf[MAXLEN];
+    
+     cfd=socket(AF_INET,SOCK_STREAM,0); 
+     bzero(&serveraddr,sizeof(serveraddr));
+     serveraddr.sin_family=AF_INET;
+     inet_pton(AF_INET,"127.0.0.1",&serveraddr.sin_addr);
+     serveraddr.sin_port=htons(PORT);
 
+     connect(cfd,(struct sockaddr *)&serveraddr,sizeof(serveraddr)); //将cfd的主动socket连接到由serveraddr指定的监听socket；
+     while(1)
+     { printf("qsr !\n");
+       char buf[4096];
+       scanf("%s",buf);
+       send(cfd,buf,strlen(buf),0);
+       
+     }
+     close(cfd);
 
 }
