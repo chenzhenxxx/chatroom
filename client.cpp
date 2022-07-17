@@ -1,66 +1,71 @@
-#include<netinet/in.h>
-#include<stdio.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<string.h>
-#include<unistd.h>
-#include<arpa/inet.h>
-#include<stdlib.h>
-#include<fcntl.h>
+#include"json_use.h"
 #include<iostream>
-#include <nlohmann/json.hpp>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <random>
+#include <stdexcept>
+#include <stdlib.h>
+#include <string>
+#include <sys/socket.h>
+#include<sys/epoll.h>
+#include <sys/stat.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
 using namespace std;
 #define PORT 10000
 #define MAXLEN 4096
-using json= nlohmann::json;
-
-
-namespace jjjson
+int cfd;
+void sign_up()
 {
-    class stu
+    jjjson::usr user;
+
+    user.id=(int)time(NULL);
+    printf("注册ID为%d\n请注意保存",user.id);
+    printf("请输入用户名！\n");
+    scanf("%s",user.name);
+    printf("请输入密码!\n");
+    scanf("%s",user.pwd);
+    printf("请设置密保问题！\n");
+    scanf("%s",user.question);
+    printf("请设置密保答案！\n");
+    scanf("%s",user.answer);
+    json j;
+    j=user;
+    string ifo=j.dump();
+    char buf[4096];
+    send(cfd,ifo.c_str(),ifo.size());
+    recv(cfd,buf,4096);
+    if(strcmp(buf,ok)==0)
     {
-    public:
-        string name;
-        int age;
-        int sex;
-    };
-    class pwd
-    {  public:
-        string name;
-        string pwd;
-    };
-    void to_json(json &j, const stu &p)
-    {
-        j = json{{"name", p.name}, {"sex", p.sex}, {"age", p.age}};
+      cout<<"sign up sucuess!"<<endl;
     }
 
-    void from_json(const json &j, stu &p)
-    {
-        j.at("name").get_to(p.name);
-        j.at("sex").get_to(p.sex);
-        j.at("age").get_to(p.age);
-    };
-    void to_json(json &j, const pwd &p)
-    {
-        j = json{{"name", p.name}, {"pwd", p.pwd}};
-    }
 
-    void from_json(const json &j,pwd &p)
-    {
-        j.at("name").get_to(p.name);
-        j.at("pwd").get_to(p.pwd);
-    };
+
 }
 
+void login_menu()
+{   int select;
+   printf("     ***********     star chatroom    **********  \n");
+   printf("    ***********        1.login          **********  \n");
+   printf("   ***********         2.sign up          **********  \n");
+   printf("  ***********          3.quit               ***********  \n");
+   scanf("%d",&select);
+   switch(select)
+   {
+       //case 1: login();
+       case 2:sign_up();
+       //case 3: quit();
+   }
 
 
 
-
-
+}
 int main(int argc,char **argv)
 {
     struct sockaddr_in serveraddr;
-    int cfd;
     int len;
     char buf[MAXLEN];
     
@@ -75,15 +80,17 @@ int main(int argc,char **argv)
      { //printf("qsr !\n");
        //char buf[4096];
        //scanf("%s",buf);
-        jjjson::pwd p;
-          p.name="czx";
-          p.pwd="123";
-           json x=p;
-           cout << x << endl;
-           string m=x.dump();
-       send(cfd,m.c_str(),m.size(),0);
+        //jjjson::pwd p;
+          //p.name="czx";
+          ////p.pwd="123";
+           //json x=p;
+           //cout << x << endl;
+           //string m=x.dump();
+       //send(cfd,m.c_str(),m.size(),0);
        
-     }
+     //}
+     login_menu();
      close(cfd);
+     }
 
 }
