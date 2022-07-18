@@ -37,7 +37,6 @@ namespace jjjson
     public:
         int id;
         int fd;
-        int type;
         string name;
         string pwd;
         int status;
@@ -50,13 +49,12 @@ namespace jjjson
 
     void to_json(json &j, const usr &p)
     {
-        j = json{{"id",p.id}, {"fd", p.fd},{"type",p.type},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice}};
+        j = json{{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice}};
     }
     void from_json(const json &j, usr &p)
     {
         j.at("name").get_to(p.name);
         j.at("id").get_to(p.id);
-        j.at("type").get_to(p.type);
         j.at("pwd").get_to(p.pwd);
         j.at("fd").get_to(p.fd);
         j.at("status").get_to(p.status);

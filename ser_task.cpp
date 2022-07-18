@@ -63,6 +63,21 @@ void Login(jjjson::usr user)
     write(user.fd,f,1);
 
 }
+
+void Settings(jjjson::usr user)
+{   json j=user;
+    char f[1];
+    string s=j.dump();
+    auto status=db->Put(leveldb::WriteOptions(),user.name,s);
+    if(status.ok())
+    {
+        f[0]='1';
+    }
+    else
+    f[0]='0';
+    send(user.fd,f,1,0);
+}
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -75,5 +90,9 @@ void *task(void *arg)
     else if(tmp.choice.compare("login")==0)
     {
         Login(user);
+    }
+    else if(tmp.choice.compare("settings")==0)
+    {
+      Settings(user);
     }
 }
