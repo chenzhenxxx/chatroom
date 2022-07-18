@@ -1,4 +1,4 @@
-#include"ser_task.cpp"
+#include "ser_task.cpp"
 int main()
 {
     struct sockaddr_in serveraddr;
@@ -7,7 +7,7 @@ int main()
     char buf[MAXLEN];
     pthread_t tid;
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    int opt=1;
+    int opt = 1;
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(int));
     bzero(&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
@@ -17,25 +17,24 @@ int main()
     listen(listenfd, 20);
     int epollfd = epoll_create(10);
     epoll_event ev;
-    ev.events = EPOLLIN|EPOLLET;
-    int flag=fcntl(listenfd,F_GETFL);
-    flag|=O_NONBLOCK;
-    fcntl(listenfd,F_SETFL,flag);
+    ev.events = EPOLLIN | EPOLLET;
+    int flag = fcntl(listenfd, F_GETFL);
+    flag |= O_NONBLOCK;
+    fcntl(listenfd, F_SETFL, flag);
     ev.data.fd = listenfd;
     epoll_ctl(epollfd, EPOLL_CTL_ADD, listenfd, &ev);
-     leveldb::Options options;
-     options.create_if_missing = true;
-    
-     leveldb::Status status = leveldb::DB::Open(options, "chatroom", &db);
-     assert(status.ok());
+    leveldb::Options options;
+    options.create_if_missing = true;
 
-
+    leveldb::Status status = leveldb::DB::Open(options, "chatroom", &db);
+    assert(status.ok());
 
     while (1)
     {
         epoll_event events[4096];
+        memset(events, 0, 4096);
         int n = epoll_wait(epollfd, events, 4096, -1);
-        printf("%d\n",n);
+        printf("%d\n", n);
         if (n < 0)
         {
             // 被信号中断
@@ -50,7 +49,7 @@ int main()
             continue;
         }
         for (int i = 0; i < n; i++)
-        {    
+        {
             if (events[i].events & EPOLLIN)
             {
                 if (events[i].data.fd == listenfd)
@@ -58,36 +57,37 @@ int main()
                     struct sockaddr_in cliaddr;
                     socklen_t cliaddrlen = sizeof(cliaddr);
                     int cfd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrlen);
-                    cout<<"first"<<cfd<<endl;
+                    cout << "first" << cfd << endl;
                     epoll_event evv;
-                    int flag=fcntl(cfd,F_GETFL);
-                    flag|=O_NONBLOCK;
-                    fcntl(cfd,F_SETFL,flag);
+                    int flag = fcntl(cfd, F_GETFL);
+                    flag |= O_NONBLOCK;
+                    fcntl(cfd, F_SETFL, flag);
                     evv.data.fd = cfd;
-                    evv.events = EPOLLIN|EPOLLET;
+                    evv.events = EPOLLIN | EPOLLET;
                     epoll_ctl(epollfd, EPOLL_CTL_ADD, cfd, &evv);
                 }
 
                 else
-                {   char buf[4096];
-                    memset(buf,0,4096);
+                {
+                    char buf[4096];
+                    memset(buf, 0, 4096);
                     int tmpfd = events[i].data.fd;
-                    int len = recv(tmpfd, buf,4096, 0);
-                    string s(buf);
-                    cout<<s<<endl;
-                    auto tmp=json::parse(s);
-                    jjjson::usr  u =tmp.get<jjjson::usr>();
-                    jjjson::usr *user =&u;
-                    user->fd=tmpfd;
+                    int len = recv(tmpfd, buf, 4096, 0);
                     if (len == 0)
-                    {  
+                    {
                         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
                         close(tmpfd);
                         break;
                     }
                     else
-                    {   
-                        pthread_create(&tid,NULL,task,(void *)user);
+                    {
+                        string s(buf);
+                        cout << s << endl;
+                        auto tmp = json::parse(s);
+                        jjjson::usr u = tmp.get<jjjson::usr>();
+                        jjjson::usr *user = &u;
+                        user->fd = tmpfd;
+                        pthread_create(&tid, NULL, task, (void *)user);
                     }
                 }
             }

@@ -29,11 +29,10 @@ void Sign(jjjson::usr user)
         f[0]='0';
     }
     else
-    {  
+    {   cout<<j<<endl;
         db->Put(leveldb::WriteOptions(),user.name,j.dump());
         
        f[0]='1';
-       cout<<f<<endl;
     }
    
     write(user.fd,f,1);
@@ -51,6 +50,7 @@ void Login(jjjson::usr user)
              f[0]='1';
              user.status=1;
              json tmp=user;
+             cout<<tmp<<endl;
              db->Put(leveldb::WriteOptions(),user.name,tmp.dump());
          }
          else
@@ -68,6 +68,7 @@ void Settings(jjjson::usr user)
 {   json j=user;
     char f[1];
     string s=j.dump();
+    cout<<j<<endl;
     auto status=db->Put(leveldb::WriteOptions(),user.name,s);
     if(status.ok())
     {

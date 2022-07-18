@@ -18,13 +18,10 @@ int main(int argc,char **argv)
      //pthread_create(&tid,NULL,Recv,void *base)
      connect(cfd,(struct sockaddr *)&serveraddr,sizeof(serveraddr)); //将cfd的主动socket连接到由serveraddr指定的监听socket；
      
-     while(1)
-     {
-        if(login_menu()==-1)
-         return 0;
-
-     }     
+     
+        login_menu();     
       close(cfd);
+      return 0;
      
 
 }

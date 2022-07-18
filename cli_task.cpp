@@ -21,7 +21,6 @@ void sign_up()
   char buf[1];
   send(cfd, ifo.c_str(), ifo.size(), 0);
   read(cfd, buf, 1);
-  cout << buf << endl;
   if (strcmp(buf, "1") == 0)
   {
     cout << "sign up sucuess!" << endl;
@@ -90,6 +89,8 @@ void settings(jjjson::usr user)
 
 int  menu(jjjson::usr user)
 {
+  while(1)
+  {
   printf("     ***********         welcome %s       **********  \n", user.name.c_str());
   printf("    ***********         1.个人信息设置       **********  \n");
   printf("   ***********          2.好友               **********  \n");
@@ -103,6 +104,7 @@ int  menu(jjjson::usr user)
     case 2:break;
     case 3:break;
     case 4: return -1;break;
+  }
   }
   return 0;
 }
@@ -123,7 +125,6 @@ void login()
   char buf[1];
   send(cfd, ifo.c_str(), ifo.size(), 0);
   read(cfd, buf, 1);
-  cout << buf << endl;
   if (strcmp(buf, "1") == 0)
   {
     cout << "login sucuess!" << endl;
@@ -139,7 +140,8 @@ void login()
   }
 }
 int login_menu()
-{
+{ while(1)
+  {
   int select;
   printf("     ***********     star chatroom    **********  \n");
   printf("    ***********        1.login          **********  \n");
@@ -150,13 +152,17 @@ int login_menu()
   switch (select)
   {
   case 1:
+    printf("a");
     login();
     break;
   case 2:
+    printf("b");
     sign_up();
     break;
   case 3:
     return -1;
+    break;
+  }
   }
 
   return 1;
