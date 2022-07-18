@@ -1,29 +1,11 @@
-#include"json_use.h"
-#include<iostream>
-#include <memory>
-#include <mutex>
-#include <ostream>
-#include <random>
-#include <stdexcept>
-#include <stdlib.h>
-#include <string>
-#include <sys/socket.h>
-#include<sys/epoll.h>
-#include <sys/stat.h>
-#include <thread>
-#include <unistd.h>
-#include <vector>
-#define PORT 10000
-#define MAXLEN 4096
-using namespace std;
-
+#include"ser_task.cpp"
 int main()
 {
     struct sockaddr_in serveraddr;
     int listenfd;
     int len;
     char buf[MAXLEN];
-
+    pthread_t tid;
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     bzero(&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
@@ -39,6 +21,13 @@ int main()
     fcntl(listenfd,F_SETFL,flag);
     ev.data.fd = listenfd;
     epoll_ctl(epollfd, EPOLL_CTL_ADD, listenfd, &ev);
+     leveldb::Options options;
+     options.create_if_missing = true;
+    
+     leveldb::Status status = leveldb::DB::Open(options, "chatroom", &db);
+     assert(status.ok());
+
+
 
     while (1)
     {
@@ -77,11 +66,15 @@ int main()
                 }
 
                 else
-                {   
-                    char buf[4096];
-                    memset(buf,0,sizeof(buf));
+                {   char buif[4096];
                     int tmpfd = events[i].data.fd;
-                    int len = recv(tmpfd, buf, 4096, 0);
+                    int len = recv(tmpfd, buf,4096, 0);
+                    string s(buf);
+                    auto tmp=json::parse(s);
+                    jjjson::usr  u =tmp.get<jjjson::usr>();
+                    jjjson::usr *user =&u;
+
+
                     if (len == 0)
                     {  
                         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
@@ -89,16 +82,13 @@ int main()
                         break;
                     }
                     else
-                    {   buf[strlen(buf)]='\0';
-                        json j=json::parse(buf);
-                        auto m = j.get<jjjson::pwd>();
-                        cout<<m.name<<endl;
-                        cout<<m.pwd<<endl;
-                        cout<<j<<endl;
+                    {   
+                        pthread_create(&tid,NULL,task,(void *)user);
                     }
                 }
             }
         }
     }
+    delete db;
     close(listenfd);
 }
