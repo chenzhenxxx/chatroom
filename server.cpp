@@ -7,6 +7,8 @@ int main()
     char buf[MAXLEN];
     pthread_t tid;
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    int opt=1;
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(int));
     bzero(&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -56,6 +58,7 @@ int main()
                     struct sockaddr_in cliaddr;
                     socklen_t cliaddrlen = sizeof(cliaddr);
                     int cfd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrlen);
+                    cout<<"first"<<cfd<<endl;
                     epoll_event evv;
                     int flag=fcntl(cfd,F_GETFL);
                     flag|=O_NONBLOCK;
@@ -66,15 +69,16 @@ int main()
                 }
 
                 else
-                {   char buif[4096];
+                {   char buf[4096];
+                    memset(buf,0,4096);
                     int tmpfd = events[i].data.fd;
                     int len = recv(tmpfd, buf,4096, 0);
                     string s(buf);
+                    cout<<s<<endl;
                     auto tmp=json::parse(s);
                     jjjson::usr  u =tmp.get<jjjson::usr>();
                     jjjson::usr *user =&u;
-
-
+                    user->fd=tmpfd;
                     if (len == 0)
                     {  
                         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
