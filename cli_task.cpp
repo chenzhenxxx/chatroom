@@ -190,6 +190,44 @@ void deal_req(jjjson::usr *user)
     }
   }
 }
+void Delete_friend(jjjson::usr *user)
+{   cout<<"请输入想删除的用户（按0退出）"<<endl;
+    cin>>(*user).friendname;
+   (*user).choice="check_friend";
+    json j = *user;
+    string s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    char f[1];
+    recv(cfd, f, 1, 0);
+    if (strcmp(f, "0") == 0)
+    {
+    cout << "此用户不存在！" << endl;
+    }
+    else if(strcmp(f,"3")!=0)
+    {
+      cout<<"不是盆友！"<<endl;
+    }
+    (*user).choice="delete_friend";
+     j = *user;
+     s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    memset(f,0,sizeof(f));
+    recv(cfd,f,1,0);
+    if(strcmp(f,"1")==0)
+    {
+      cout<<"成功删除"<<endl;
+    }
+    else
+    {
+      cout<<"删除失败！"<<endl;
+    }
+    
+
+
+   
+
+
+}
 void Friend(jjjson::usr *user)
 {
   while (1)
@@ -226,7 +264,7 @@ void Friend(jjjson::usr *user)
     case 1:
       Add_friend(user);
       break;
-    case 2:
+    case 2: Delete_friend(user);
       break;
     case 3:
       break;

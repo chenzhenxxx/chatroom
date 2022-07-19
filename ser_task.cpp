@@ -60,7 +60,7 @@ void Login(jjjson::usr user)
             f[0] = '1';
             tmp.status = 1;
             j = tmp;
-            cout <<j << endl;
+            cout << j << endl;
             db->Delete(leveldb::WriteOptions(), user.name);
             db->Put(leveldb::WriteOptions(), user.name, j.dump());
         }
@@ -81,13 +81,16 @@ void Settings(jjjson::usr user)
     string value;
     string s = j.dump();
     cout << j << endl;
-    db->Get(leveldb::ReadOptions(),user.name,&value);
-    json k=json::parse(value);
-    auto tmp= k.get<jjjson::usr>();
+    db->Get(leveldb::ReadOptions(), user.name, &value);
+    json k = json::parse(value);
+    auto tmp = k.get<jjjson::usr>();
     db->Delete(leveldb::WriteOptions(), user.name);
-    tmp.name=user.name;tmp.answer=user.answer;tmp.question=user.question;tmp.pwd=user.pwd;
-    k=tmp;
-    auto status = db->Put(leveldb::WriteOptions(), user.name,k.dump());
+    tmp.name = user.name;
+    tmp.answer = user.answer;
+    tmp.question = user.question;
+    tmp.pwd = user.pwd;
+    k = tmp;
+    auto status = db->Put(leveldb::WriteOptions(), user.name, k.dump());
     if (status.ok())
     {
         f[0] = '1';
@@ -98,17 +101,18 @@ void Settings(jjjson::usr user)
 }
 
 void Offline(jjjson::usr user)
-{   string value;
+{
+    string value;
     char f[1];
     json j = user;
     string s = j.dump();
-    db->Get(leveldb::ReadOptions(),user.name,&value);
-    json k=json::parse(value);
-    auto tmp= k.get<jjjson::usr>();
+    db->Get(leveldb::ReadOptions(), user.name, &value);
+    json k = json::parse(value);
+    auto tmp = k.get<jjjson::usr>();
     db->Delete(leveldb::WriteOptions(), user.name);
-    tmp.status=0;
-    k=tmp;
-    auto status = db->Put(leveldb::WriteOptions(), user.name,k.dump());
+    tmp.status = 0;
+    k = tmp;
+    auto status = db->Put(leveldb::WriteOptions(), user.name, k.dump());
     if (status.ok())
     {
         f[0] = '1';
@@ -135,13 +139,13 @@ void Add_friend(jjjson::usr user)
     j = json::parse(value);
     auto tmp = j.get<jjjson::usr>();
     char buf[4096];
-    memset(buf,0,sizeof(buf));
+    memset(buf, 0, sizeof(buf));
     sprintf(buf, "%s want to become your friend", user.name.c_str());
     string t(buf);
     tmp.box.push_back(t);
-    j=tmp;
-    db->Delete(leveldb::WriteOptions(),user.friendname);
-    db->Put(leveldb::WriteOptions(),user.friendname, j.dump());
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), user.friendname);
+    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
 }
 
 void Deal_friendreq(jjjson::usr user)
@@ -163,7 +167,7 @@ void Deal_friendreq(jjjson::usr user)
             }
         }
 
-              //加到好友列表
+        //加到好友列表
 
         fri.myfri.push_back(user.friendname);
         j = fri;
@@ -182,18 +186,16 @@ void Deal_friendreq(jjjson::usr user)
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, tmp);
 
-
-         db->Get(leveldb::ReadOptions(), user.friendname, &value);
-         j = json::parse(value);
-          auto t = j.get<jjjson::usr>();
-           char buf[4096];
-           memset(buf,0,sizeof(buf));
-         sprintf(buf, "%s accept to become your friend", user.name.c_str());
-          t.box.push_back(buf);
-          j=t;
-         db->Delete(leveldb::WriteOptions(),user.friendname);
-        db->Put(leveldb::WriteOptions(),user.friendname, j.dump());
-
+        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        j = json::parse(value);
+        auto t = j.get<jjjson::usr>();
+        char buf[4096];
+        memset(buf, 0, sizeof(buf));
+        sprintf(buf, "%s accept to become your friend", user.name.c_str());
+        t.box.push_back(buf);
+        j = t;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
     }
     else if (user.choice == "reject_friend")
     {
@@ -215,18 +217,17 @@ void Deal_friendreq(jjjson::usr user)
         string tmp = j.dump();
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, tmp);
-        
-    db->Get(leveldb::ReadOptions(), user.friendname, &value);
-    j = json::parse(value);
-     auto t = j.get<jjjson::usr>();
-    char buf[4096];
-    memset(buf,0,sizeof(buf));
-    sprintf(buf, "%s reject to become your friend", user.name.c_str());
-    t.box.push_back(buf);
-    j=t;
-    db->Delete(leveldb::WriteOptions(),user.friendname);
-    db->Put(leveldb::WriteOptions(),user.friendname, j.dump());
 
+        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        j = json::parse(value);
+        auto t = j.get<jjjson::usr>();
+        char buf[4096];
+        memset(buf, 0, sizeof(buf));
+        sprintf(buf, "%s reject to become your friend", user.name.c_str());
+        t.box.push_back(buf);
+        j = t;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
     }
 }
 
@@ -247,8 +248,7 @@ void Check_friend(jjjson::usr user)
     json j = json::parse(value);
     auto myfriend = j.get<jjjson::Friend>();
 
-
-     for (auto iter = myfriend.myfri.begin(); iter != myfriend.myfri.end(); iter++) //已是朋友
+    for (auto iter = myfriend.myfri.begin(); iter != myfriend.myfri.end(); iter++) //已是朋友
     {
         if (*iter == user.name)
         {
@@ -277,6 +277,56 @@ void Check_friend(jjjson::usr user)
     }
 }
 
+void Delete_fri(jjjson::usr user)
+{   char f[1];
+    string s = "friend";
+    s += user.name;
+    string value;
+    auto status = db->Get(leveldb::ReadOptions(), s, &value);
+    json j = json::parse(value);
+    auto tmp1 = j.get<jjjson::Friend>();
+    for (auto it = tmp1.myfri.begin(); it != tmp1.myfri.end(); it++) //删自己的好友列表
+    {
+        if (*it == user.friendname)
+        {
+            tmp1.myfri.erase(it);
+            break;
+        }
+    }
+    j = tmp1;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+    s = "friend";
+    s += user.friendname;
+    status = db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp2 = j.get<jjjson::Friend>();
+    for (auto it = tmp2.myfri.begin(); it != tmp2.myfri.end(); it++) //删自己的好友列表
+    {
+        if (*it == user.name)
+        {
+            tmp2.myfri.erase(it);
+            break;
+        }
+    }
+    j = tmp2;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+
+   status=db->Get(leveldb::ReadOptions(),user.friendname,&value);
+   j=json::parse(value);
+   auto tmp3=j.get<jjjson::usr>();
+   char buf[4096];
+   sprintf(buf,"%s delete you!",user.name.c_str());
+   tmp3.box.push_back(buf);
+   j=tmp3;
+   db->Delete(leveldb::WriteOptions(),user.friendname);    
+   db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
+   f[0]='1';
+   send(user.fd,f,1,0);
+}
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -323,36 +373,38 @@ void *task(void *arg)
         auto status = db->Get(leveldb::ReadOptions(), s, &value);
         send(user.fd, value.c_str(), value.size(), 0);
     }
-    else if(tmp.choice.compare("check")==0)
-    {    
-         string value;
-         auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
-         json j=json::parse(value);
-         auto us=j.get<jjjson::usr>();
-         char f[1];
-         if(us.box.empty())
-         {
-             f[0]='0';
-         }
-         else
-         {
-             f[0]='1';
-         }
-         send(user.fd,f,1,0);
-
+    else if (tmp.choice.compare("check") == 0)
+    {
+        string value;
+        auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
+        json j = json::parse(value);
+        auto us = j.get<jjjson::usr>();
+        char f[1];
+        if (us.box.empty())
+        {
+            f[0] = '0';
+        }
+        else
+        {
+            f[0] = '1';
+        }
+        send(user.fd, f, 1, 0);
     }
-    else if(tmp.choice.compare("inform")==0)
+    else if (tmp.choice.compare("inform") == 0)
     {
         string value;
         auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
         send(user.fd, value.c_str(), value.size(), 0);
-        json j=json::parse(value);
-        auto tmp=j.get<jjjson::usr>();
+        json j = json::parse(value);
+        auto tmp = j.get<jjjson::usr>();
         tmp.box.clear();
-        j=tmp;
+        j = tmp;
         db->Delete(leveldb::WriteOptions(), user.name);
         db->Put(leveldb::WriteOptions(), user.name, j.dump());
+    }
 
-
+    else if (tmp.choice.compare("delete_friend") == 0)
+    {
+        Delete_fri(user);
     }
 }
