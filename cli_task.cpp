@@ -1,7 +1,19 @@
 #include "json_use.h"
 
-//void Check()
+void Check(jjjson::usr *user)
+{
+  char f[1];
+  (*user).choice="check";
+  json j=*user;
+  string s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  recv(cfd,f,1,0);
+  if(strcmp(f,"1")==0)
+  {
+     cout<<"有通知请注意查收！"<<endl;
+  }
 
+}
 
 void sign_up()
 {
@@ -18,7 +30,9 @@ void sign_up()
   cin >> user.question;
   printf("请设置密保答案！\n");
   cin >> user.answer;
-  user.status = 0;user.id=0;user.friendid=0;
+  user.status = 0;
+  user.id = 0;
+  user.friendid = 0;
   json j;
   j = user;
   string ifo = j.dump();
@@ -36,7 +50,7 @@ void sign_up()
   return;
 }
 
-void settings(jjjson::usr * user)
+void settings(jjjson::usr *user)
 {
   while (1)
   {
@@ -67,7 +81,6 @@ void settings(jjjson::usr * user)
       cout << "请输入新答案" << endl;
       cin >> (*user).answer;
       break;
-    
     }
     if (select == 5)
     {
@@ -91,138 +104,173 @@ void settings(jjjson::usr * user)
   }
 }
 
-
 void Add_friend(jjjson::usr *user)
 {
-     cout<<"请输入你想添加的好友账号！"<<endl;
-     cin>>(*user).friendname;
-     (*user).choice="check_friend";
-     json j=*user;
-     string s=j.dump();
-     send(cfd,s.c_str(),s.size(),0);
-     char f[1];
-     recv(cfd,f,1,0);
-     if(strcmp(f,"0")==0)
-     {
-       cout<<"此用户不存在！"<<endl;
-     }
-     else
-     {
-       cout<<"已经发送请求！"<<endl;                                                 
-     }
-     
+  cout << "请输入你想添加的好友账号！" << endl;
+  cin >> (*user).friendname;
+  if ((*user).name == (*user).friendname)
+  {
+    cout << "请勿添加自己！" << endl;
+    return;
+  }
+  (*user).choice = "check_friend";
+  json j = *user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  char f[1];
+  recv(cfd, f, 1, 0);
+  if (strcmp(f, "0") == 0)
+  {
+    cout << "此用户不存在！" << endl;
+  }
+  else if (strcmp(f, "2") == 0)
+  {
+    cout << "已经过发送请求！请勿重复发送！" << endl;
+  }
+  else if (f[0] == '3')
+  {
+    cout << "已是朋友！" << endl;
+  }
+  else
+  {
+    cout << "已成功发送！" << endl;
+  }
 }
 void deal_req(jjjson::usr *user)
-{ char buf[4096];
-  (*user).choice="friend_req";
-  json j=*user;
-  string s =j.dump();
-  send(cfd,s.c_str(),s.size(),0);
-  recv(cfd,buf,4096,0);
-  buf[strlen(buf)]='\0';
-  string tmp(buf);
-  j=json::parse(tmp);
-
-  auto fri= j.get<jjjson::Friend>();
-  for(auto it=fri.request.begin();it!=fri.request.end();it++)
+{
+  while (1)
   {
-    cout<<"from____________"<<*it<<endl;
+
+    char buf[4096];
+    memset(buf,0,sizeof(buf));
+    (*user).choice = "friend_req";
+    json j = *user;
+    string s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    recv(cfd, buf, 4096, 0);
+    buf[strlen(buf)] = '\0';
+    string tmp(buf);
+    j = json::parse(tmp);
+
+    auto fri = j.get<jjjson::Friend>();
+    for (auto it = fri.request.begin(); it != fri.request.end(); it++)
+    {
+      cout << "from____________" << *it << endl;
+    }
+    printf("     ***********         welcome %s       **********  \n", (*user).name.c_str());
+    printf("    ***********         1.操作         **********  \n");
+    printf("    ***********         2.退出              *************\n");
+    int select;
+    cin >> select;
+    switch (select)
+    {
+    case 1:
+      cout << "请选择操作对象" << endl;
+      string s;
+      cin >> s;
+      printf("    ***********  1.同意     2.拒绝      3.取消         **********  \n");
+      int x;
+      cin >> x;
+      if (x == 1)
+        (*user).choice = "agree_friend";
+      else if (x == 2)
+        (*user).choice = "reject_friend";
+      if (x != 3)
+      {
+        (*user).friendname = s;
+        json j = *user;
+        string s = j.dump();
+        send(cfd, s.c_str(), s.size(), 0);
+      }
+      break;
+    }
+    if (select == 2)
+    {
+      break;
+    }
   }
-  while(1)
-  {
-     printf("     ***********         welcome %s       **********  \n", (*user).name.c_str());
-     printf("    ***********         1.操作         **********  \n");
-     printf("    ***********         2.退出              *************\n");
-     int select;
-     cin>>select;
-     switch(select)
-     {
-      case 1: 
-             cout<<"请选择操作对象"<<endl;
-             string s;
-             cin>>s;
-             printf("    ***********  1.同意     2.拒绝      3.取消         **********  \n");
-             int x;
-             cin>>x;
-             if(x==1)
-             (*user).choice="agree_friend";
-             else if(x==2)
-             (*user).choice="reject_friend";
-             if(x!=3)
-             {
-               (*user).friendname=s;
-               json j=*user;
-               string s=j.dump();
-               send(cfd,s.c_str(),s.size(),0);
-             }
-             break;
-
-             
-     }
-     if(select==2)
-     {
-       break;
-     }
-
-  }
-
 }
 void Friend(jjjson::usr *user)
 {
   while (1)
-  {  cout<<"************friend"<<endl;
-     (*user).choice="look_friend";
-     
-     json j=*user;
-     string s=j.dump();
-    
-     send(cfd,s.c_str(),s.size(),0);
-     char tmpfri[4096];
-     memset(tmpfri,0,sizeof(tmpfri));
-     recv(cfd,tmpfri,4096,0);
-     tmpfri[strlen(tmpfri)]='\0';
-     s=tmpfri;
-     auto m=json::parse(s);
-     auto fri= m.get<jjjson::Friend>();
-     for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)  //删申请
-        {   
-            cout<<"************"<<*iter<<endl;
-        }
+  {
+    cout << "************friend" << endl;
+    (*user).choice = "look_friend";
+
+    json j = *user;
+    string s = j.dump();
+
+    send(cfd, s.c_str(), s.size(), 0);
+    char tmpfri[4096];
+    memset(tmpfri, 0, sizeof(tmpfri));
+    recv(cfd, tmpfri, 4096, 0);
+    tmpfri[strlen(tmpfri)] = '\0';
+    s = tmpfri;
+    auto m = json::parse(s);
+    auto fri = m.get<jjjson::Friend>();
+    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++) //删申请
+    {
+      cout << "************" << *iter << endl;
+    }
     printf("     ***********         welcome %s       **********  \n", (*user).name.c_str());
     printf("    ***********         1.添加好友          **********  \n");
     printf("   ***********          2.删除好友           **********  \n");
     printf("  ***********           3.私聊               ***********  \n");
     printf(" ***********            4.屏蔽好友             **********  \n");
     printf("***********             5.处理好友申请           **********  \n");
-     printf("***********            6.退出                   **********  \n");
-     int select;
-     cin>>select;
-     switch(select)
-     {
-       case 1:
-              Add_friend(user);
-              break;
-       case 2:break;
-       case 3:break;
-       case 4:break;
-       case 5:deal_req(user);break;
-     }
-     if(select==6)
-     {
-       return ;
-     }
+    printf("***********            6.退出                   **********  \n");
+    int select;
+    cin >> select;
+    switch (select)
+    {
+    case 1:
+      Add_friend(user);
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+    case 4:
+      break;
+    case 5:
+      deal_req(user);
+      break;
+    }
+    if (select == 6)
+    {
+      return;
+    }
+  }
+}
+
+void Inform(jjjson::usr *user)
+{ cout<<"*********I N F O R M"<<endl; 
+  char buf[4096];
+   memset(buf,0,4096);
+   (*user).choice="inform";
+   json j=*user;
+  string s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  recv(cfd,buf,4096,0);
+  string tmp(buf);
+  j=json::parse(tmp);
+  auto uu=j.get<jjjson::usr>();
+  for(auto it=uu.box.begin();it!=uu.box.end();it++)
+  {
+    cout<<*it<<endl;
   }
 }
 
 int menu(jjjson::usr *user)
 {
   while (1)
-  {
+  {  Check(user);
     printf("     ***********         welcome %s       **********  \n", (*user).name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
     printf("   ***********          2.好友               **********  \n");
     printf("  ***********           3.群                  ***********  \n");
-    printf(" ***********            4.退出                  **********  \n");
+    printf("  ***********           4.查看通知               ***********  \n");
+    printf(" ***********            5.退出                  **********  \n");
     int select;
     scanf("%d", &select);
     switch (select)
@@ -237,8 +285,10 @@ int menu(jjjson::usr *user)
 
     case 3:
       break;
-
     case 4:
+      Inform(user);
+      break;
+    case 5:
       (*user).status = 0;
       (*user).choice = "offline";
       json j;
