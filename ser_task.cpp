@@ -199,6 +199,18 @@ void Deal_friendreq(jjjson::usr user)
         j = t;
         db->Delete(leveldb::WriteOptions(), user.friendname);
         db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+
+        //创建两个朋友消息表
+        s=user.name;
+        s+=user.friendname;
+        jjjson::Fri_chat chat;
+        json k=chat;
+        db->Put(leveldb::WriteOptions(),s,k.dump());
+        s=user.friendname;
+        s+=user.name;
+        k=chat;
+        db->Put(leveldb::WriteOptions(),s,k.dump());
+
     }
     else if (user.choice == "reject_friend")
     {
@@ -330,6 +342,37 @@ void Delete_fri(jjjson::usr user)
    f[0]='1';
    send(user.fd,f,1,0);
 }
+
+void Chat_sb(jjjson::usr user)
+{   string value;
+    string s=user.friendname;
+    s+=user.name;
+    db->Get(leveldb::ReadOptions(),s,&value);   //先放到对方的未读消息并存到对方的消息记录
+    json j=json::parse(value);
+    auto tmp=j.get<jjjson::Fri_chat>();
+    tmp.history.push_back(user.mes_fri);
+    tmp.time.push_back(user.time);
+    tmp.unread.push_back(user.mes_fri);
+    tmp.unread_t.push_back(user.time);
+    j=tmp;
+    db->Delete(leveldb::WriteOptions(),s);
+    db->Put(leveldb::WriteOptions(),s,j.dump());
+
+
+    s=user.name;
+    s+=user.friendname;
+    db->Get(leveldb::ReadOptions(),s,&value); //放到自己的消息记录
+    j=json::parse(value);
+    auto t=j.get<jjjson::Fri_chat>();
+    t.history.push_back(user.mes_fri);
+    t.time.push_back(user.time);
+    j=t;
+    db->Delete(leveldb::WriteOptions(),s);
+    db->Put(leveldb::WriteOptions(),s,j.dump());
+
+}
+
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -429,4 +472,28 @@ void *task(void *arg)
     {
         Delete_fri(user);
     }
+    else if(tmp.choice.compare("chat_sb")==0)
+    {
+        Chat_sb(user);
+    }
+    else if(tmp.choice.compare("recv_chat_fri")==0)
+    {
+       string s=user.name;
+       s+=user.friendname;
+       string value;
+       db->Get(leveldb::ReadOptions(),s,&value);
+       json j=json::parse(value);
+       string t=j.dump();
+       send(user.fd,t.c_str(),t.size(),0);
+       auto tmp=j.get<jjjson::Fri_chat>();
+       tmp.unread.clear();
+       tmp.unread_t.clear();
+       j=tmp;
+       db->Delete(leveldb::WriteOptions(),s);
+       db->Put(leveldb::WriteOptions(),s,j.dump());
+
+
+
+    }
+    return NULL;
 }

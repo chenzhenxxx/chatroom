@@ -221,10 +221,88 @@ void Delete_friend(jjjson::usr *user)
     {
       cout<<"删除失败！"<<endl;
     }
+} 
+
+void *recv_chat(void *arg)
+{  while(1)
+   {
+   jjjson::usr user =*(jjjson::usr *)arg;
+   jjjson:: usr tmp=user;
+   tmp.choice="recv_chat_fri";
+   json k=tmp;
+   string m=k.dump();
+   send(cfd,m.c_str(),m.size());
+   char buf[4096];
+   memset(buf,0,4096);
+   int ret=recv(cfd,buf,4096,0);
+   if(ret!=0)
+   {
+     json j=json::parse(buf);
+     auto tmp=j.get<jjjson::Fri_chat>();
+     for(auto it=tmp.unread.begin();it!=tmp.unread.end();it++)
+     {
+       cout<<user.friendname<<":"<<*it<<endl;
+       cout<<ctime(&tmp.unread_t[0])<<endl;
+       tmp.unread_t.erase(tmp.unread_t.begin());
+     }
+   }
+   }
+
+}
+
+void Chat_sb(jjjson::usr *user)
+{   
+    char f[1];
+    pthread_t tid;
+    cout<<"请输入你想聊天的对象！"<<endl;
+    cin>>(*user).friendname;
+    (*user).choice="check_friend";
+    json j=*user;
+    string s=j.dump();
+    send(cfd,s.c_str(),s.size(),0);
+    recv(cfd,f,1,0);
+    if(f[0]=='0')
+    {
+      cout<<"没有此人！"<<endl;
+    }
+    else if(f[0]!='3')
+    {
+      cout<<"不是朋友!"<<endl;
+    }
+    else 
+    {
+      printf("请开心地和%s聊天吧!(输入qiut结束聊天）\n",(*user).friendname.c_str());
+    }
+
+    pthread_create(&tid,NULL,recv_chat,(void *)user);
+    (*user).choice="chat_sb";
+    while(1)
+    { string s;
+      cin>>s;
+      if(s=="quit")
+      break;
+      char buf[4096];
+      sprintf(buf,"%50s : %s",(*user).name.c_str(),s.c_str());
+      time_t ti;
+      ti=time(NULL);
+      char time[4096];
+      sprintf(time,"%50s",ctime(&ti));
+      write(STDOUT_FILENO,buf,sizeof(buf));
+      write(STDOUT_FILENO,time,sizeof(time));
+      
+      (*user).mes_fri=buf;
+      (*user).time=ti;
+      json k=*user;
+       s=k.dump();
+      send(cfd,s.c_str(),s.size(),0);
+      
+    }
     
 
+    
 
-   
+    pthread_join(tid,NULL);
+
 
 
 }
@@ -278,7 +356,8 @@ void Friend(jjjson::usr *user)
     case 2: Delete_friend(user);
       break;
     case 3:
-      break;
+         Chat_sb(user);
+         break;
     case 4:
       break;
     case 5:
