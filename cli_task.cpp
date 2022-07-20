@@ -246,9 +246,20 @@ void Friend(jjjson::usr *user)
     s = tmpfri;
     auto m = json::parse(s);
     auto fri = m.get<jjjson::Friend>();
-    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++) //删申请
-    {
-      cout << "************" << *iter << endl;
+    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++) 
+    {  char f[1];
+       memset(f,0,1);
+      recv(cfd,f,1,0);
+      cout << "************" << *iter << "*********";
+      if(f[0]=='0')
+      {
+        cout<<"offline"<<endl;
+      }
+      else
+      {
+        cout<<"online"<<endl;
+      }
+      
     }
     printf("     ***********         welcome %s       **********  \n", (*user).name.c_str());
     printf("    ***********         1.添加好友          **********  \n");
@@ -327,7 +338,6 @@ int menu(jjjson::usr *user)
       Inform(user);
       break;
     case 5:
-      (*user).status = 0;
       (*user).choice = "offline";
       json j;
       j = *user;

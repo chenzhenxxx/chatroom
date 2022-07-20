@@ -101,11 +101,9 @@ void Settings(jjjson::usr user)
 }
 
 void Offline(jjjson::usr user)
-{
+{   
     string value;
     char f[1];
-    json j = user;
-    string s = j.dump();
     db->Get(leveldb::ReadOptions(), user.name, &value);
     json k = json::parse(value);
     auto tmp = k.get<jjjson::usr>();
@@ -113,6 +111,12 @@ void Offline(jjjson::usr user)
     tmp.status = 0;
     k = tmp;
     auto status = db->Put(leveldb::WriteOptions(), user.name, k.dump());
+    
+    db->Get(leveldb::ReadOptions(), user.name, &value);
+    k = json::parse(value);
+     tmp = k.get<jjjson::usr>();
+     cout<<"thjis"<<tmp.status<<endl;
+
     if (status.ok())
     {
         f[0] = '1';
@@ -168,7 +172,6 @@ void Deal_friendreq(jjjson::usr user)
         }
 
         //加到好友列表
-
         fri.myfri.push_back(user.friendname);
         j = fri;
         string tmp = j.dump();
@@ -372,6 +375,25 @@ void *task(void *arg)
         s += user.name;
         auto status = db->Get(leveldb::ReadOptions(), s, &value);
         send(user.fd, value.c_str(), value.size(), 0);
+        json j=json::parse(value);
+        auto tmp=j.get<jjjson::Friend>();
+        for(auto it=tmp.myfri.begin();it!=tmp.myfri.end();it++)
+        {   char f[1];
+            string val;
+            db->Get(leveldb::ReadOptions(),*it,&val);
+            j=json::parse(val);
+            auto t=j.get<jjjson::usr>();
+            if(t.status==0)
+            {
+                f[0]='0';
+            }
+            else
+            {
+                f[0]='1';
+            }
+            send(user.fd,f,1,0);
+            
+        }
     }
     else if (tmp.choice.compare("check") == 0)
     {
