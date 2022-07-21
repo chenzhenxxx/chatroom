@@ -1,5 +1,5 @@
 #include "json_use.h"
-
+int cfd;
 void Check(jjjson::usr user)
 {
   char f[1];
@@ -231,13 +231,14 @@ void *recv_chat(jjjson::usr arg)
       string s=j.dump();
       send(cfd,s.c_str(),s.size(),0);
     while(1)
-    { printf("yes\n");
+    { 
       
       char buf[4096];
       memset(buf,0,4096);
+
       int ret=recv(cfd,buf,4096,0);
       if((strcmp(buf,"quit"))==0)
-      {
+      { cout<<"gameover"<<endl;
         break;
       }
       else
@@ -334,10 +335,10 @@ void Friend(jjjson::usr user)
     memset(tmpfri, 0, sizeof(tmpfri));
     recv(cfd, tmpfri, 4096, 0);
     //tmpfri[strlen(tmpfri)] = '\0';
-    //cout<<"thiuss"<<tmpfri<<endl;
+    cout<<"thiuss"<<tmpfri<<endl;
     s = tmpfri;
     //printf("111\n");
-    //cout<<"this"<<s<<endl;
+    cout<<"this"<<s<<endl;
     auto m = json::parse(s);
     
     auto fri = m.get<jjjson::Friend>();

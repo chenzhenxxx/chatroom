@@ -16,7 +16,7 @@
 #define PORT 10000
 #define MAXLEN 4096
 using namespace std;
-
+string judge;
 void Sign(jjjson::usr user)
 {
     string value;
@@ -343,7 +343,7 @@ void Delete_fri(jjjson::usr user)
 }
 
 void Chat_sb(jjjson::usr user)
-{
+{   
     string value;
     judge.clear();
     judge=user.mes_fri;
@@ -388,11 +388,12 @@ void *Recv_mes(void *arg)
     string s=user.name;
     s+=user.friendname;
     while(1)
-    { //printf("000\n");
+    { printf("000\n");
     db->Get(leveldb::ReadOptions(),s,&value);
     json j=json::parse(value);
     string t=j.dump();
     auto q=j.get<jjjson::Fri_chat>();
+    auto p=q;
     if(q.unread.size()!=0)
     { send(user.fd,t.c_str(),t.size(),0);
     q.unread.clear();
@@ -401,13 +402,24 @@ void *Recv_mes(void *arg)
     db->Delete(leveldb::WriteOptions(),s);
     db->Put(leveldb::WriteOptions(),s,j.dump());
     }
+    //pthread_mutex_lock(&mutexx);
+    //for(auto it=p.unread.begin();it!=p.unread.end();it++)
+    //{
+        //if(*it=="quit")
+        //printf("over %d\n",user.fd);
+             //char buf[20]="quit";
+       // break;
+    //}
     if(judge=="quit")
-        {    //printf("over\n");
+        {   judge.clear();
+            printf("over %d\n",user.fd);
              char buf[20]="quit";
+             cout<<user.fd<<endl;
+             sleep(1);
             send(user.fd,buf,20,0);
-            judge.clear();
              break;
         }
+    //pthread_mutex_unlock(&mutexx);
     }
     return NULL;
 }

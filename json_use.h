@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include<sys/epoll.h>
 #include <sys/stat.h>
+#include<pthread.h>
 #include <thread>
 #include <vector>
 #include <stdlib.h>
@@ -27,11 +28,10 @@ using namespace std;
 using json = nlohmann::json;
 #define PORT 10000
 #define MAXLEN 4096
-int cfd;
 int tmpfd;
 int epollfd;
 pthread_t tid;
-string judge;
+pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr

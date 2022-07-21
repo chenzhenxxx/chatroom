@@ -1,6 +1,6 @@
 #include "ser_task.cpp"
 int main()
-{
+{    pthread_mutex_init(&mutexx,NULL);
     struct sockaddr_in serveraddr;
     int listenfd;
     int len;
@@ -74,6 +74,7 @@ int main()
             }
         }
     }
+    pthread_mutex_destroy(&mutexx);
     delete db;
     close(listenfd);
 }
