@@ -15,7 +15,7 @@ int main()
     serveraddr.sin_port = htons(PORT);
     bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
     listen(listenfd, 20);
-    int epollfd = epoll_create(10);
+     epollfd = epoll_create(10);
     epoll_event ev;
     ev.events = EPOLLIN | EPOLLET;
     int flag = fcntl(listenfd, F_GETFL);
@@ -34,7 +34,7 @@ int main()
         epoll_event events[4096];
         memset(events, 0, 4096);
         int n = epoll_wait(epollfd, events, 4096, -1);
-        printf("%d\n", n);
+        //printf("%d\n", n);
         if (n < 0)
         {
             // 被信号中断
@@ -68,27 +68,8 @@ int main()
                 }
 
                 else
-                {
-                    char buf[4096];
-                    memset(buf, 0, 4096);
-                    int tmpfd = events[i].data.fd;
-                    int len = recv(tmpfd, buf, 4096, 0);
-                    if (len == 0)
-                    {
-                        epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-                        close(tmpfd);
-                        break;
-                    }
-                    else
-                    {
-                        string s(buf);
-                        cout << s << endl;
-                        auto tmp = json::parse(s);
-                        jjjson::usr u = tmp.get<jjjson::usr>();
-                        jjjson::usr *user = &u;
-                        user->fd = tmpfd;
-                        pthread_create(&tid, NULL, task, (void *)user);
-                    }
+                {    tmpfd = events[i].data.fd;
+                    pthread_create(&tid,NULL,task,NULL);
                 }
             }
         }

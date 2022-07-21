@@ -28,7 +28,10 @@ using json = nlohmann::json;
 #define PORT 10000
 #define MAXLEN 4096
 int cfd;
-
+int tmpfd;
+int epollfd;
+pthread_t tid;
+string judge;
 namespace jjjson
 {
     class usr
@@ -44,6 +47,8 @@ namespace jjjson
         string question;
         string answer;
         string choice;
+        string mes_fri;
+        time_t time;
         vector<string> box;
     };
     
@@ -58,10 +63,20 @@ namespace jjjson
 
     };
 
+    class Fri_chat
+    {
+        public:
+         vector<string> history;
+         vector<string>unread;
+         vector<time_t> time;
+         vector<time_t> unread_t;
+
+    };
+
 
     void to_json(json &j, const usr &p)
     {
-        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box}};
+        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box},{"time",p.time},{"mes_fri",p.mes_fri}};
     }
     void from_json(const json &j, usr &p)
     {
@@ -76,6 +91,8 @@ namespace jjjson
         j.at("box").get_to(p.box);
         j.at("friendname").get_to(p.friendname);
         j.at("friendid").get_to(p.friendid);
+        j.at("mes_fri").get_to(p.mes_fri);
+        j.at("time").get_to(p.time);
     }
     void to_json(json &j,const Friend &p)
     {
@@ -91,5 +108,18 @@ namespace jjjson
         j.at("time").get_to(p.time);
 
     }
+
+    void to_json(json &j,const Fri_chat &p)
+    {
+        j=json{{"history",p.history},{"unread",p.unread},{"time",p.time},{"unread_t",p.unread_t}};
+    }
+    void from_json(const json &j,Fri_chat &p)
+    {
+        j.at("history").get_to(p.history);
+        j.at("unread").get_to(p.unread);
+        j.at("time").get_to(p.time);
+        j.at("unread_t").get_to(p.unread_t);
+    }
+
    
 }
