@@ -60,6 +60,7 @@ namespace jjjson
         string to;
         vector<string> buf;
         vector<int> time;
+        map<string,int> ship;
 
     };
 
@@ -96,7 +97,7 @@ namespace jjjson
     }
     void to_json(json &j,const Friend &p)
     {
-        j=json{{"myfri",p.myfri},{"request",p.request},{"from",p.from},{"to",p.to},{"buf",p.buf},{"time",p.time}};
+        j=json{{"myfri",p.myfri},{"request",p.request},{"from",p.from},{"to",p.to},{"buf",p.buf},{"time",p.time},{"ship",p.ship}};
     }
     void from_json(const json &j,Friend &p)
     {
@@ -106,6 +107,7 @@ namespace jjjson
         j.at("to").get_to(p.to);
         j.at("buf").get_to(p.buf);
         j.at("time").get_to(p.time);
+        j.at("ship").get_to(p.ship);
 
     }
 

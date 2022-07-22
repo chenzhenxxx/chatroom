@@ -251,7 +251,7 @@ void Check_friend(jjjson::usr user)
 {
     string value;
     char f[1];
-    cout<<"lala"<<user.friendname<<endl;
+    //cout<<"lala"<<user.friendname<<endl;
     auto status = db->Get(leveldb::ReadOptions(), user.friendname, &value);
     if (!status.ok()) //没有此人
     {
@@ -480,7 +480,7 @@ void Shield_fri(jjjson::usr user)
         s+=user.name;
         db->Get(leveldb::ReadOptions(),s,&value);
         
-        cout<<"myvla"<<value<<endl;
+        //cout<<"myvla"<<value<<endl;
 
         json j=json::parse(value);
         auto tmp=j.get<jjjson::Friend>();
@@ -502,7 +502,7 @@ void Shield_fri(jjjson::usr user)
         s+=user.friendname;
         db->Get(leveldb::ReadOptions(),s,&value);
         
-        cout<<"otttvla"<<value<<endl;
+        //cout<<"otttvla"<<value<<endl;
 
          j=json::parse(value);
         tmp=j.get<jjjson::Friend>();
@@ -519,7 +519,7 @@ void Shield_fri(jjjson::usr user)
         db->Put(leveldb::WriteOptions(),s,j.dump());
 
         db->Get(leveldb::ReadOptions(),s,&value);
-        cout<<"ans"<<value<<endl;
+        //cout<<"ans"<<value<<endl;
         
 
         

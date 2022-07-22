@@ -239,7 +239,7 @@ void *recv_chat(jjjson::usr arg)
     int ret = recv(cfd, buf, 4096, 0);
     if ((strcmp(buf, "quit")) == 0)
     {
-      cout << "gameover" << endl;
+      //cout << "gameover" << endl;
       break;
     }
     else
@@ -292,7 +292,7 @@ void Chat_sb(jjjson::usr user)
   string r = j.dump();
   send(cfd, r.c_str(), r.size(), 0);
   recv(cfd, f, 4096, 0);
-  cout<<"f=="<<f<<endl;
+  //cout<<"f=="<<f<<endl;
   if (f[0] == '0')
   {
     cout << "没有此人！" << endl;
@@ -418,7 +418,7 @@ void Friend(jjjson::usr user)
     memset(tmpfri, 0, sizeof(tmpfri));
     recv(cfd, tmpfri, 4096, 0);
     // tmpfri[strlen(tmpfri)] = '\0';
-    cout << "thiuss" << tmpfri << endl;
+    //cout << "thiuss" << tmpfri << endl;
     s = tmpfri;
     // printf("111\n");
     //cout << "this" << s << endl;
@@ -548,8 +548,8 @@ void login()
   user.choice = "login";
   printf("请输入用户名！\n");
   cin >> user.name;
-  printf("请输入密码!\n");
-  cin >> user.pwd;
+  
+  user.pwd=getpass("请输入密码!\n");
   json j;
   j = user;
   string ifo = j.dump();
@@ -585,7 +585,14 @@ int login_menu()
   while (1)
   {
     int select;
-    printf("     ***********     star chatroom    **********  \n");
+             cout<<"/*************************************************/"<<endl;
+cout<<"/*  ____   _                  ____ _           _    */"<<endl;
+cout<<"/* / ___| | |_  __ _  _ __    / ___| |__   __ _| |_  */"<<endl;
+cout<<"/* \\___ \\ | __ / _`  | '__|  | |   | '_ \\ / _` | __| */"<<endl;
+cout<<"/*  ___)  | | | (_|  | |     | |___| | | | (_| | |_  */"<<endl;
+cout<<"/* |____/  \\__ \\__,_ |_|      \\____|_| |_|\\__,_|\\__| */"<<endl;
+cout<<"/*                                               */"<<endl;
+cout<<"/*************************************************/"<<endl;
     printf("    ***********        1.login          **********  \n");
     printf("   ***********         2.sign up          **********  \n");
     printf("  ***********          3.quit               ***********  \n");
