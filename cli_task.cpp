@@ -3,16 +3,15 @@ int cfd;
 void Check(jjjson::usr user)
 {
   char f[1];
-  user.choice="check";
-  json j=user;
-  string s=j.dump();
-  send(cfd,s.c_str(),s.size(),0);
-  recv(cfd,f,1,0);
-  if(strcmp(f,"1")==0)
+  user.choice = "check";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (strcmp(f, "1") == 0)
   {
-     cout<<"有通知请注意查收！"<<endl;
+    cout << "有通知请注意查收！" << endl;
   }
-
 }
 
 void sign_up()
@@ -142,7 +141,7 @@ void deal_req(jjjson::usr user)
   {
 
     char buf[4096];
-    memset(buf,0,sizeof(buf));
+    memset(buf, 0, sizeof(buf));
     user.choice = "friend_req";
     json j = user;
     string s = j.dump();
@@ -191,134 +190,167 @@ void deal_req(jjjson::usr user)
   }
 }
 void Delete_friend(jjjson::usr user)
-{   cout<<"请输入想删除的用户（按0退出）"<<endl;
-    cin>>user.friendname;
-   user.choice="check_friend";
-    json j = user;
-    string s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    char f[1];
-    recv(cfd, f, 1, 0);
-    if (strcmp(f, "0") == 0)
-    {
+{
+  cout << "请输入想删除的用户（按0退出）" << endl;
+  cin >> user.friendname;
+  user.choice = "check_friend";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  char f[1];
+  recv(cfd, f, 1, 0);
+  if (strcmp(f, "0") == 0)
+  {
     cout << "此用户不存在！" << endl;
-    }
-    else if(strcmp(f,"3")!=0)
+  }
+  else if (strcmp(f, "3") != 0)
+  {
+    cout << "不是盆友！" << endl;
+  }
+  user.choice = "delete_friend";
+  j = user;
+  s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  memset(f, 0, sizeof(f));
+  recv(cfd, f, 1, 0);
+  if (strcmp(f, "1") == 0)
+  {
+    cout << "成功删除" << endl;
+  }
+  else
+  {
+    cout << "删除失败！" << endl;
+  }
+}
+
+void *recv_chat(jjjson::usr arg)
+{ // pthread_detach(pthread_self());
+  jjjson::usr tmp = arg;
+  tmp.choice = "recv_mes";
+  json j = tmp;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  while (1)
+  {
+
+    char buf[4096];
+    memset(buf, 0, 4096);
+
+    int ret = recv(cfd, buf, 4096, 0);
+    if ((strcmp(buf, "quit")) == 0)
     {
-      cout<<"不是盆友！"<<endl;
-    }
-    user.choice="delete_friend";
-     j = user;
-     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    memset(f,0,sizeof(f));
-    recv(cfd,f,1,0);
-    if(strcmp(f,"1")==0)
-    {
-      cout<<"成功删除"<<endl;
+      cout << "gameover" << endl;
+      break;
     }
     else
     {
-      cout<<"删除失败！"<<endl;
-    }
-} 
-
-void *recv_chat(jjjson::usr arg)
-{   //pthread_detach(pthread_self());
-      jjjson::usr tmp=arg;
-      tmp.choice="recv_mes";
-      json j=tmp;
-      string s=j.dump();
-      send(cfd,s.c_str(),s.size(),0);
-    while(1)
-    { 
-      
-      char buf[4096];
-      memset(buf,0,4096);
-
-      int ret=recv(cfd,buf,4096,0);
-      if((strcmp(buf,"quit"))==0)
-      { cout<<"gameover"<<endl;
-        break;
+      string t(buf);
+      printf("ok");
+      json j = json::parse(t);
+      auto q = j.get<jjjson::Fri_chat>();
+      for (auto it = q.unread.begin(); it != q.unread.end(); it++)
+      {
+        printf("%50c", ' ');
+        cout << tmp.friendname << " :" << *it << endl;
+        printf("%40c", ' ');
+        cout << ctime(&q.unread_t[0]) << endl;
+        q.unread_t.erase(q.unread_t.begin());
       }
-      else
-      { string t(buf);
-        printf("ok");
-        json j=json::parse(t);
-        auto q=j.get<jjjson::Fri_chat>();
-        for(auto it=q.unread.begin();it!=q.unread.end();it++)
-        { printf("%50c",' ');
-          cout<<tmp.friendname<<" :"<<*it<<endl;
-          printf("%40c",' ');
-          cout<<ctime(&q.unread_t[0])<<endl;
-          q.unread_t.erase(q.unread_t.begin());
-        }
-
-      }
-      
-
     }
-    return NULL;
+  }
+  return NULL;
 }
+
+void Check_history(jjjson::usr user)
+{  
+   char buf[10000];
+   user.choice="check_history";
+   json j=user;
+   string s=j.dump();
+   send(cfd,s.c_str(),s.size(),0);
+   recv(cfd,buf,10000,0);
+   buf[strlen(buf)]='\0';
+   //cout<<"dfs"<<buf<<endl;
+   string t(buf);
+   json k=json::parse(t);
+   auto w=k.get<jjjson::Fri_chat>();
+   for(auto it=w.history.begin();it!=w.history.end();it++)
+   {
+     cout<<*it<<endl;
+     cout<<ctime(&w.time[0])<<endl;
+     w.time.erase(w.time.begin());
+   }
+}
+
+
+
 
 void Chat_sb(jjjson::usr user)
-{   char f[1];
-   cout<<"请输入聊天对象"<<endl;
-   cin>>user.friendname;
-   user.choice="check_friend";
-   json j=user;
-   string r=j.dump();
-   send(cfd,r.c_str(),r.size(),0);
-   recv(cfd,f,1,0);
-   if(f[0]=='0')
-   {
-     cout<<"没有此人！"<<endl;
-     return;
+{
+  char f[1];
+  cout << "请输入聊天对象" << endl;
+  cin >> user.friendname;
+  user.choice = "check_friend";
+  json j = user;
+  string r = j.dump();
+  send(cfd, r.c_str(), r.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] == '0')
+  {
+    cout << "没有此人！" << endl;
+    return;
+  }
+  else if (f[0] != '3')
+  {
+    cout << "不是好友" << endl;
+    return;
+  }
+  if (f[0] == '3')
+  {
+    printf("请和%s愉快的聊天吧！\n", user.friendname.c_str());
+  }
+  cout<<"1.开始聊天               2.查看聊天记录             3.输入其他键退出"<<endl;
+  int select;
+  cin>>select;
+  if(select==1)
+  {
+  pthread_t tid;
+  thread recvv(recv_chat, user);
 
-   }
-   else if(f[0]!='3')
-   {
-     cout<<"不是好友"<<endl;
-     return;
-   }
-   if(f[0]=='3')
-   {
-     cout<<"请和%s愉快的聊天吧！"<<user.friendname<<endl;
-   }
-
-
-    pthread_t tid;
-    thread recvv(recv_chat,user);
-
-   while(1)
-   {
-      string s;
-      s.clear();
-      user.choice="chat_sb";
-      cin>>s;
-      time_t t;
-      t=time(NULL);
-      user.mes_fri=s;
-      user.time=t;
-      if(s=="quit")
-      { user.choice="quit_chatfri";
-        json j=user;
-        string l=j.dump();
-        send(cfd,l.c_str(),l.size(),0);
-        break;
-      }
-      cout<<user.name<<" :"<<s<<endl;
-      cout<<ctime(&t)<<endl;
-      json j=user;
-      string l=j.dump();
-      send(cfd,l.c_str(),l.size(),0);
+  while (1)
+  {
+    string s;
+    s.clear();
+    user.choice = "chat_sb";
+    cin >> s;
+    time_t t;
+    t = time(NULL);
+    user.mes_fri = s;
+    user.time = t;
+    if (s == "quit")
+    {
+      user.choice = "quit_chatfri";
+      json j = user;
+      string l = j.dump();
+      send(cfd, l.c_str(), l.size(), 0);
+      break;
     }
-    recvv.join();
-
-
-
-
+    cout << user.name << " :" << s << endl;
+    cout << ctime(&t) << endl;
+    json j = user;
+    string l = j.dump();
+    send(cfd, l.c_str(), l.size(), 0);
+  }
+  recvv.join();
+  }
+  else if(select==2)
+  { 
+    Check_history(user);
+  }
+  
 }
+
+
 void Friend(jjjson::usr user)
 {
   while (1)
@@ -328,42 +360,42 @@ void Friend(jjjson::usr user)
 
     json j = user;
     string s = j.dump();
-    
+
     send(cfd, s.c_str(), s.size(), 0);
     char tmpfri[4096];
     s.clear();
     memset(tmpfri, 0, sizeof(tmpfri));
     recv(cfd, tmpfri, 4096, 0);
-    //tmpfri[strlen(tmpfri)] = '\0';
-    cout<<"thiuss"<<tmpfri<<endl;
+    // tmpfri[strlen(tmpfri)] = '\0';
+    cout << "thiuss" << tmpfri << endl;
     s = tmpfri;
-    //printf("111\n");
-    cout<<"this"<<s<<endl;
+    // printf("111\n");
+    cout << "this" << s << endl;
     auto m = json::parse(s);
-    
+
     auto fri = m.get<jjjson::Friend>();
-    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++) 
-    {  char f[1];
-       memset(f,0,1);
-      recv(cfd,f,1,0);
+    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
+    {
+      char f[1];
+      memset(f, 0, 1);
+      recv(cfd, f, 1, 0);
       cout << "************" << *iter << "*********";
-      if(f[0]=='0')
+      if (f[0] == '0')
       {
-        cout<<"offline"<<endl;
+        cout << "offline" << endl;
       }
       else
       {
-        cout<<"online"<<endl;
+        cout << "online" << endl;
       }
-      
     }
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.添加好友          **********  \n");
     printf("   ***********          2.删除好友           **********  \n");
     printf("  ***********           3.私聊               ***********  \n");
-    printf(" ***********            4.屏蔽好友             **********  \n");
+    printf(" ***********            4.屏蔽好友(开启/取消)             **********  \n");
     printf("***********             5.处理好友申请           **********  \n");
-    printf("***********            6.退出                   **********  \n");
+    printf("***********             6.退出                    **********  \n");
     int select;
     cin >> select;
     switch (select)
@@ -371,12 +403,14 @@ void Friend(jjjson::usr user)
     case 1:
       Add_friend(user);
       break;
-    case 2: Delete_friend(user);
+    case 2:
+      Delete_friend(user);
       break;
     case 3:
-         Chat_sb(user);
-         break;
+      Chat_sb(user);
+      break;
     case 4:
+
       break;
     case 5:
       deal_req(user);
@@ -390,27 +424,29 @@ void Friend(jjjson::usr user)
 }
 
 void Inform(jjjson::usr user)
-{ cout<<"*********I N F O R M"<<endl; 
+{
+  cout << "*********I N F O R M" << endl;
   char buf[4096];
-   memset(buf,0,4096);
-   user.choice="inform";
-   json j=user;
-  string s=j.dump();
-  send(cfd,s.c_str(),s.size(),0);
-  recv(cfd,buf,4096,0);
+  memset(buf, 0, 4096);
+  user.choice = "inform";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, buf, 4096, 0);
   string tmp(buf);
-  j=json::parse(tmp);
-  auto uu=j.get<jjjson::usr>();
-  for(auto it=uu.box.begin();it!=uu.box.end();it++)
+  j = json::parse(tmp);
+  auto uu = j.get<jjjson::usr>();
+  for (auto it = uu.box.begin(); it != uu.box.end(); it++)
   {
-    cout<<*it<<endl;
+    cout << *it << endl;
   }
 }
 
 int menu(jjjson::usr user)
 {
   while (1)
-  {  Check(user);
+  {
+    Check(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
     printf("   ***********          2.好友               **********  \n");
@@ -467,7 +503,16 @@ void login()
   j = user;
   string ifo = j.dump();
   char buf[1];
-  user.answer="";user.box.clear();user.fd=0;user.friendid=0;user.friendname="";user.id=0;user.mes_fri="";user.question="";user.time=0;user.status=0;
+  user.answer = "";
+  user.box.clear();
+  user.fd = 0;
+  user.friendid = 0;
+  user.friendname = "";
+  user.id = 0;
+  user.mes_fri = "";
+  user.question = "";
+  user.time = 0;
+  user.status = 0;
   send(cfd, ifo.c_str(), ifo.size(), 0);
   read(cfd, buf, 1);
   if (strcmp(buf, "1") == 0)

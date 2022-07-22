@@ -60,7 +60,7 @@ void Login(jjjson::usr user)
             f[0] = '1';
             tmp.status = 1;
             j = tmp;
-            //cout << j << endl;
+            // cout << j << endl;
             db->Delete(leveldb::WriteOptions(), user.name);
             db->Put(leveldb::WriteOptions(), user.name, j.dump());
         }
@@ -80,7 +80,7 @@ void Settings(jjjson::usr user)
     char f[1];
     string value;
     string s = j.dump();
-    //cout << j << endl;
+    // cout << j << endl;
     db->Get(leveldb::ReadOptions(), user.name, &value);
     json k = json::parse(value);
     auto tmp = k.get<jjjson::usr>();
@@ -115,7 +115,7 @@ void Offline(jjjson::usr user)
     db->Get(leveldb::ReadOptions(), user.name, &value);
     k = json::parse(value);
     tmp = k.get<jjjson::usr>();
-    //cout << "thjis" << tmp.status << endl;
+    // cout << "thjis" << tmp.status << endl;
 
     if (status.ok())
     {
@@ -343,88 +343,122 @@ void Delete_fri(jjjson::usr user)
 }
 
 void Chat_sb(jjjson::usr user)
-{   
+{
     string value;
     judge.clear();
-    judge=user.mes_fri;
-    if(user.mes_fri=="quit")
-    return ;
+    judge = user.mes_fri;
+    if (user.mes_fri == "quit")
+        return;
     string s = user.friendname;
     s += user.name;
-    //printf("1\n");
+    // printf("1\n");
     db->Get(leveldb::ReadOptions(), s, &value); //先放到对方的未读消息并存到对方的消息记录
-    //cout << "valie:" << value << endl;
+    // cout << "valie:" << value << endl;
     json j = json::parse(value);
-   // printf("*****\n");
+    // printf("*****\n");
     auto tmp = j.get<jjjson::Fri_chat>();
-    //cout << "Jj" << j << endl;
-    tmp.history.push_back(user.mes_fri);
-    //cout << "))))))))))" << endl;
-    //cout << user.mes_fri << endl;
-    tmp.time.push_back(user.time);
+    // cout << "Jj" << j << endl;
+    string h;
+    h = user.name + " :" + user.mes_fri;
+    if(tmp.history.size()>50) // 超过50条消息就把前面的删了
+    { tmp.history.erase(tmp.history.begin());
+      tmp.history.push_back(h);
+      tmp.time.erase(tmp.time.begin());
+      tmp.time.push_back(user.time);
+    }
+    else
+    {
+       tmp.history.push_back(h);
+       tmp.time.push_back(user.time);
+    }
+    // cout << "))))))))))" << endl;
+    // cout << user.mes_fri << endl;
     tmp.unread.push_back(user.mes_fri);
     tmp.unread_t.push_back(user.time);
     j = tmp;
-    //cout<<j<<endl;
+    // cout<<j<<endl;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
-    //printf("2\n");
-    //printf("***\n");
+    // printf("2\n");
+    // printf("***\n");
 
-     s=user.name;
-     s+=user.friendname;
-     db->Get(leveldb::ReadOptions(),s,&value); //放到自己的消息记录
-     j=json::parse(value);
-     auto t=j.get<jjjson::Fri_chat>();
-     t.history.push_back(user.mes_fri);
-     t.time.push_back(user.time);
-     j=t;
-     db->Delete(leveldb::WriteOptions(),s);
-     db->Put(leveldb::WriteOptions(),s,j.dump());
+    s = user.name;
+    s += user.friendname;
+    db->Get(leveldb::ReadOptions(), s, &value); //放到自己的消息记录
+    j = json::parse(value);
+    auto t = j.get<jjjson::Fri_chat>();
+     if(t.history.size()>50) // 超过50条消息就把前面的删了
+    { t.history.erase(t.history.begin());
+      t.history.push_back(h);
+      t.time.erase(t.time.begin());
+      t.time.push_back(user.time);
+    }
+    else
+    {
+       t.history.push_back(h);
+       t.time.push_back(user.time);
+    }
+    j = t;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
 }
 
 void *Recv_mes(void *arg)
-{    pthread_detach(pthread_self());
+{
+    pthread_detach(pthread_self());
     string value;
-    jjjson::usr user=*(jjjson::usr *)arg;
-    string s=user.name;
+    jjjson::usr user = *(jjjson::usr *)arg;
+    string s = user.name;
+    s += user.friendname;
+    while (1)
+    {
+        printf("000\n");
+        db->Get(leveldb::ReadOptions(), s, &value);
+        json j = json::parse(value);
+        string t = j.dump();
+        auto q = j.get<jjjson::Fri_chat>();
+        auto p = q;
+        if (q.unread.size() != 0)
+        {
+            send(user.fd, t.c_str(), t.size(), 0);
+            q.unread.clear();
+            q.unread_t.clear();
+            j = q;
+            db->Delete(leveldb::WriteOptions(), s);
+            db->Put(leveldb::WriteOptions(), s, j.dump());
+        }
+        // pthread_mutex_lock(&mutexx);
+        // for(auto it=p.unread.begin();it!=p.unread.end();it++)
+        //{
+        // if(*it=="quit")
+        // printf("over %d\n",user.fd);
+        // char buf[20]="quit";
+        // break;
+        //}
+        if (judge == "quit")
+        {
+            printf("over %d\n", user.fd);
+            // char buf[20]="quit";
+            // cout<<user.fd<<endl;
+            // sleep(1);
+            // send(user.fd,buf,20,0);
+            judge.clear();
+            break;
+        }
+        // pthread_mutex_unlock(&mutexx);
+    }
+    return NULL;
+}
+
+void Check_history(jjjson::usr user)
+{   string s=user.name;
     s+=user.friendname;
-    while(1)
-    { printf("000\n");
+    string value;
     db->Get(leveldb::ReadOptions(),s,&value);
     json j=json::parse(value);
     string t=j.dump();
-    auto q=j.get<jjjson::Fri_chat>();
-    auto p=q;
-    if(q.unread.size()!=0)
-    { send(user.fd,t.c_str(),t.size(),0);
-    q.unread.clear();
-    q.unread_t.clear();
-    j=q;
-    db->Delete(leveldb::WriteOptions(),s);
-    db->Put(leveldb::WriteOptions(),s,j.dump());
-    }
-    //pthread_mutex_lock(&mutexx);
-    //for(auto it=p.unread.begin();it!=p.unread.end();it++)
-    //{
-        //if(*it=="quit")
-        //printf("over %d\n",user.fd);
-             //char buf[20]="quit";
-       // break;
-    //}
-    if(judge=="quit")
-        {   
-            printf("over %d\n",user.fd);
-             //char buf[20]="quit";
-             //cout<<user.fd<<endl;
-             //sleep(1);
-            //send(user.fd,buf,20,0);
-            judge.clear();
-             break;
-        }
-    //pthread_mutex_unlock(&mutexx);
-    }
-    return NULL;
+    //cout<<"hello"<<t<<endl;
+    send(user.fd,t.c_str(),t.size(),0);
 }
 
 void *task(void *arg)
@@ -433,7 +467,7 @@ void *task(void *arg)
     char buf[4096];
     memset(buf, 0, 4096);
     int len = recv(tmpfd, buf, 4096, 0);
-     //cout<<"test"<<buf<<endl;
+    // cout<<"test"<<buf<<endl;
     if (len == 0)
     {
         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
@@ -446,7 +480,7 @@ void *task(void *arg)
         jjjson::usr user = t.get<jjjson::usr>();
         user.fd = tmpfd;
         jjjson::usr tmp = user;
-        //cout << user.mes_fri << endl;
+        // cout << user.mes_fri << endl;
         if (tmp.choice.compare("sign") == 0)
         {
             Sign(user);
@@ -473,7 +507,7 @@ void *task(void *arg)
             string s = "friend";
             s += user.name;
             auto status = db->Get(leveldb::ReadOptions(), s, &value);
-           // cout << "look:" << value.c_str() << endl;
+            // cout << "look:" << value.c_str() << endl;
             send(user.fd, value.c_str(), value.size(), 0);
         }
         else if (tmp.choice.compare("agree_friend") == 0 || tmp.choice.compare("reject_friend") == 0)
@@ -546,22 +580,21 @@ void *task(void *arg)
             Chat_sb(user);
         }
         else if (tmp.choice.compare("quit_chatfri") == 0)
-        {   
-            //pthread_join(tid,NULL);
-            judge="quit";
-            char buf[20]="quit";
-            send(user.fd,buf,20,0);
-
-
-        }
-        
-          else if (tmp.choice.compare("recv_mes") == 0)
-        {    
-             pthread_create(&tid,NULL,Recv_mes,(void*)(&user));
-             //Recv_mes((void*)&user);
+        {
+            // pthread_join(tid,NULL);
+            judge = "quit";
+            char buf[20] = "quit";
+            send(user.fd, buf, 20, 0);
         }
 
+        else if (tmp.choice.compare("recv_mes") == 0)
+        {
+            pthread_create(&tid, NULL, Recv_mes, (void *)(&user));
+            // Recv_mes((void*)&user);
+        }
+        else if (tmp.choice.compare("check_history")==0)
+        {   //printf("enter");
+            Check_history(user);
+        }
     }
-
-        
 }
