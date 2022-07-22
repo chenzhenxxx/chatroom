@@ -347,6 +347,8 @@ void Chat_sb(jjjson::usr user)
     string value;
     judge.clear();
     judge=user.mes_fri;
+    if(user.mes_fri=="quit")
+    return ;
     string s = user.friendname;
     s += user.name;
     //printf("1\n");
@@ -411,12 +413,13 @@ void *Recv_mes(void *arg)
        // break;
     //}
     if(judge=="quit")
-        {   judge.clear();
+        {   
             printf("over %d\n",user.fd);
              char buf[20]="quit";
              cout<<user.fd<<endl;
-             sleep(1);
+             //sleep(1);
             send(user.fd,buf,20,0);
+            judge.clear();
              break;
         }
     //pthread_mutex_unlock(&mutexx);
