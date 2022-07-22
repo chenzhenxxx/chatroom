@@ -173,6 +173,7 @@ void Deal_friendreq(jjjson::usr user)
 
         //加到好友列表
         fri.myfri.push_back(user.friendname);
+        fri.ship[user.friendname]=0;
         j = fri;
         string tmp = j.dump();
         db->Delete(leveldb::WriteOptions(), s);
@@ -184,6 +185,7 @@ void Deal_friendreq(jjjson::usr user)
         j = json::parse(tmp);
         auto fri1 = j.get<jjjson::Friend>();
         fri1.myfri.push_back(user.name);
+        fri1.ship[user.name]=0;
         j = fri1;
         tmp = j.dump();
         db->Delete(leveldb::WriteOptions(), s);
@@ -249,6 +251,7 @@ void Check_friend(jjjson::usr user)
 {
     string value;
     char f[1];
+    cout<<"lala"<<user.friendname<<endl;
     auto status = db->Get(leveldb::ReadOptions(), user.friendname, &value);
     if (!status.ok()) //没有此人
     {
@@ -346,7 +349,6 @@ void Chat_sb(jjjson::usr user)
 {
     string value;
     judge.clear();
-    judge = user.mes_fri;
     if (user.mes_fri == "quit")
         return;
     string s = user.friendname;
@@ -412,14 +414,23 @@ void *Recv_mes(void *arg)
     s += user.friendname;
     while (1)
     {
-        printf("000\n");
+        //printf("000\n");
         db->Get(leveldb::ReadOptions(), s, &value);
         json j = json::parse(value);
         string t = j.dump();
         auto q = j.get<jjjson::Fri_chat>();
         auto p = q;
-        if (q.unread.size() != 0)
-        {
+        string b;
+        db->Get(leveldb::ReadOptions(),user.friendname,&b);
+        json g=json::parse(b);
+        auto x=g.get<jjjson::usr>();
+        db->Get(leveldb::ReadOptions(),user.name,&b);
+         g=json::parse(b);
+        auto y=g.get<jjjson::usr>();
+        //cout<<"ss"<<x.choice<<endl;
+        //cout<<x.friendname<<endl;
+        if ((q.unread.size() != 0)&&x.name==y.friendname&&y.choice=="chat_sb")
+        {   
             send(user.fd, t.c_str(), t.size(), 0);
             q.unread.clear();
             q.unread_t.clear();
@@ -461,8 +472,62 @@ void Check_history(jjjson::usr user)
     send(user.fd,t.c_str(),t.size(),0);
 }
 
-void *task(void *arg)
+void Shield_fri(jjjson::usr user)
 {
+   
+         string value;           //自己的
+        string s="friend";
+        s+=user.name;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        
+        cout<<"myvla"<<value<<endl;
+
+        json j=json::parse(value);
+        auto tmp=j.get<jjjson::Friend>();
+         if(user.choice=="start_shield")
+         {
+        tmp.ship[user.friendname]=1;
+         }
+         else
+         {
+             tmp.ship[user.friendname]=0;
+         }
+        j=tmp;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+
+
+     
+         s="friend";                   //好友的
+        s+=user.friendname;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        
+        cout<<"otttvla"<<value<<endl;
+
+         j=json::parse(value);
+        tmp=j.get<jjjson::Friend>();
+         if(user.choice=="start_shield")
+         {
+           tmp.ship[user.name]=1;
+         }
+         else
+         {
+             tmp.ship[user.name]=0;
+         }
+        j=tmp;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+
+        db->Get(leveldb::ReadOptions(),s,&value);
+        cout<<"ans"<<value<<endl;
+        
+
+        
+    
+}
+
+void *task(void *arg)
+{   judge.clear();
     pthread_detach(pthread_self());
     char buf[4096];
     memset(buf, 0, 4096);
@@ -572,29 +637,76 @@ void *task(void *arg)
         }
 
         else if (tmp.choice.compare("delete_friend") == 0)
-        {
+        {   
             Delete_fri(user);
         }
         else if (tmp.choice.compare("chat_sb") == 0)
-        {
+        {   
             Chat_sb(user);
         }
         else if (tmp.choice.compare("quit_chatfri") == 0)
         {
             // pthread_join(tid,NULL);
+             string value;
+            db->Get(leveldb::ReadOptions(),user.name,&value);
+            json j=json::parse(value);
+            auto t=j.get<jjjson::usr>();
+            t.choice=" ";
+            t.friendname=" ";
+            j=t;
+            string z=j.dump();
+            db->Delete(leveldb::WriteOptions(),user.name);
+            db->Put(leveldb::WriteOptions(),user.name,z);
             judge = "quit";
             char buf[20] = "quit";
             send(user.fd, buf, 20, 0);
         }
 
         else if (tmp.choice.compare("recv_mes") == 0)
-        {
-            pthread_create(&tid, NULL, Recv_mes, (void *)(&user));
+        {   string value;
+            db->Get(leveldb::ReadOptions(),user.name,&value);
+            json j=json::parse(value);
+            auto t=j.get<jjjson::usr>();
+            t.choice="chat_sb";
+            t.friendname=user.friendname;
+            j=t;
+            string z=j.dump();
+            db->Delete(leveldb::WriteOptions(),user.name);
+            db->Put(leveldb::WriteOptions(),user.name,z);
+            pthread_create(&tid, NULL, Recv_mes, (void *)(&tmp));
             // Recv_mes((void*)&user);
         }
         else if (tmp.choice.compare("check_history")==0)
         {   //printf("enter");
             Check_history(user);
         }
+        else if (tmp.choice.compare("start_shield")==0||tmp.choice.compare("canel_shield")==0)
+        {  
+            Shield_fri(user);
+        }
+        else if (tmp.choice.compare("check_shield")==0)
+        {   //cout<<"hepp"<<endl;
+            string s="friend";
+            s+=user.name;
+            string value;
+            db->Get(leveldb::ReadOptions(),s,&value);
+            //cout<<"jjj"<<value<<endl;
+            json j=json::parse(value);
+            auto tmp=j.get<jjjson::Friend>();
+            char f[1];
+            if(tmp.ship[user.friendname]==0)
+            {
+                f[0]='1';
+            }
+            else
+            {
+                f[0]='0';
+            }
+            send(user.fd,f,1,0);
+        }
+
+
+        
     }
+    return NULL;
 }
