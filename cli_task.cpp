@@ -301,7 +301,7 @@ void Chat_sb(jjjson::usr user)
       user.mes_fri=s;
       user.time=t;
       if(s=="quit")
-      { //user.choice="quit_chatfri";
+      { user.choice="quit_chatfri";
         json j=user;
         string l=j.dump();
         send(cfd,l.c_str(),l.size(),0);

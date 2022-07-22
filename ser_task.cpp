@@ -415,10 +415,10 @@ void *Recv_mes(void *arg)
     if(judge=="quit")
         {   
             printf("over %d\n",user.fd);
-             char buf[20]="quit";
-             cout<<user.fd<<endl;
+             //char buf[20]="quit";
+             //cout<<user.fd<<endl;
              //sleep(1);
-            send(user.fd,buf,20,0);
+            //send(user.fd,buf,20,0);
             judge.clear();
              break;
         }
@@ -548,6 +548,7 @@ void *task(void *arg)
         else if (tmp.choice.compare("quit_chatfri") == 0)
         {   
             //pthread_join(tid,NULL);
+            judge="quit";
             char buf[20]="quit";
             send(user.fd,buf,20,0);
 
