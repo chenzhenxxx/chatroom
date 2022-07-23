@@ -55,11 +55,13 @@ void Login(jjjson::usr user)
     {
         auto j = json::parse(value);
         auto tmp = j.get<jjjson::usr>();
-        //if(tmp.status==1)
-        //{
-           // f[0]='6';
-          //  return;
-       // }
+        if(tmp.status==1)
+        {
+            f[0]='6';
+            write(user.fd, f, 1);
+            return;
+           
+        }
         if (user.pwd == tmp.pwd) //成功
         {
             f[0] = '1';
@@ -529,7 +531,7 @@ void Shield_fri(jjjson::usr user)
         db->Delete(leveldb::WriteOptions(),s);
         db->Put(leveldb::WriteOptions(),s,j.dump());
 
-        db->Get(leveldb::ReadOptions(),s,&value);
+        //db->Get(leveldb::ReadOptions(),s,&value);
         //cout<<"ans"<<value<<endl;
         
 

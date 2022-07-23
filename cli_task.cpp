@@ -575,10 +575,10 @@ void login()
   {
     cout << "password error " << endl;
   }
-   //else if(buf[0]=='6')
-  // {
-     //cout<<"此账号已经登录！"<<endl;
-   //}
+   else if(strcmp(buf, "6") == 0)
+   {
+     cout<<"此账号已经登录！"<<endl;
+   }
   else
   {
     cout << "don't exit the account" << endl;
