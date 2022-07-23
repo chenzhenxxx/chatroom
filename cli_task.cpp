@@ -103,6 +103,60 @@ void settings(jjjson::usr user)
   }
 }
 
+
+void Find_pwd()
+{ json j;
+  string s;
+  char f[1];
+  cout<<"请输入要找回密码的账号"<<endl;
+  jjjson::usr user;
+  cin>>user.friendname;//其实是偷懒为了方便，因为服务器只写了个看好友的
+  user.name=user.friendname;
+  user.choice="check_friend";
+  char buf[4096];
+  j=user;
+  s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  recv(cfd,f,1,0);
+  if(f[0]=='0')
+  {
+   cout<<"账号不存在"<<endl;
+   return;
+  }
+  user.choice="find_pwd";
+  j=user;
+  s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  
+  recv(cfd,buf,4096,0);
+  j=json::parse(buf);
+  auto tmp=j.get<jjjson::usr>();
+  cout<<"Question:"<<tmp.question<<endl;
+  cout<<"请输入密保答案"<<endl;
+  cin>>user.answer;
+  user.choice="true_pwd";
+  j=user;
+  s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  
+  memset(buf,0,4096);
+  recv(cfd,buf,4096,0);
+  j=json::parse(buf);
+   tmp=j.get<jjjson::usr>();
+   if(tmp.pwd!="")
+   {
+     cout<<"请记住密码 ："<<tmp.pwd<<endl;
+   }
+   else
+   {
+     cout<<"密保答案错误！"<<endl;
+   }
+
+  
+
+}
+
+
 void Add_friend(jjjson::usr user)
 {
   cout << "请输入你想添加的好友账号！" << endl;
@@ -239,13 +293,13 @@ void *recv_chat(jjjson::usr arg)
     int ret = recv(cfd, buf, 4096, 0);
     if ((strcmp(buf, "quit")) == 0)
     {
-      //cout << "gameover" << endl;
+      // cout << "gameover" << endl;
       break;
     }
     else
     {
       string t(buf);
-      
+
       json j = json::parse(t);
       auto q = j.get<jjjson::Fri_chat>();
       for (auto it = q.unread.begin(); it != q.unread.end(); it++)
@@ -292,7 +346,7 @@ void Chat_sb(jjjson::usr user)
   string r = j.dump();
   send(cfd, r.c_str(), r.size(), 0);
   recv(cfd, f, 4096, 0);
-  //cout<<"f=="<<f<<endl;
+  // cout<<"f=="<<f<<endl;
   if (f[0] == '0')
   {
     cout << "没有此人！" << endl;
@@ -304,15 +358,16 @@ void Chat_sb(jjjson::usr user)
     return;
   }
   if (f[0] == '3')
-  { char f[1];
-    user.choice="check_shield";
-    json c=user;
-    string h=c.dump();
-    send(cfd,h.c_str(),h.size(),0);
-    recv(cfd,f,1,0);
-    if(f[0]=='0')
+  {
+    char f[1];
+    user.choice = "check_shield";
+    json c = user;
+    string h = c.dump();
+    send(cfd, h.c_str(), h.size(), 0);
+    recv(cfd, f, 1, 0);
+    if (f[0] == '0')
     {
-      cout<<user.friendname<<"已经被你屏蔽，无法聊天！"<<endl;
+      cout << user.friendname << "已经被你屏蔽，无法聊天！" << endl;
       return;
     }
     printf("请和%s愉快的聊天吧！\n", user.friendname.c_str());
@@ -361,24 +416,24 @@ void Shield_fri(jjjson::usr user)
 {
 
   char f[1];
-    cout << "请输入对象" << endl;
-    cin >> user.friendname;
-    user.choice = "check_friend";
-    json j = user;
-    string r = j.dump();
-    send(cfd, r.c_str(), r.size(), 0);
-    recv(cfd, f, 1, 0);
-    if (f[0] == '0')
-    {
-      cout << "没有此人！" << endl;
-      return;
-    }
-    else if (f[0] != '3')
-    {
-      cout << "不是好友" << endl;
-      return;
-    }
-   
+  cout << "请输入对象" << endl;
+  cin >> user.friendname;
+  user.choice = "check_friend";
+  json j = user;
+  string r = j.dump();
+  send(cfd, r.c_str(), r.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] == '0')
+  {
+    cout << "没有此人！" << endl;
+    return;
+  }
+  else if (f[0] != '3')
+  {
+    cout << "不是好友" << endl;
+    return;
+  }
+
   string s;
   cout << "1.屏蔽     2.取消屏蔽       3.退出" << endl;
   cin >> s;
@@ -386,7 +441,6 @@ void Shield_fri(jjjson::usr user)
     return;
   else
   {
-  
 
     if (s == "1")
     {
@@ -396,9 +450,9 @@ void Shield_fri(jjjson::usr user)
     {
       user.choice = "canel_shield";
     }
-    json j=user;
-    string s=j.dump();
-    send(cfd,s.c_str(),s.size(),0);
+    json j = user;
+    string s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
   }
 }
 
@@ -418,10 +472,10 @@ void Friend(jjjson::usr user)
     memset(tmpfri, 0, sizeof(tmpfri));
     recv(cfd, tmpfri, 4096, 0);
     // tmpfri[strlen(tmpfri)] = '\0';
-    //cout << "thiuss" << tmpfri << endl;
+    // cout << "thiuss" << tmpfri << endl;
     s = tmpfri;
     // printf("111\n");
-    //cout << "this" << s << endl;
+    // cout << "this" << s << endl;
     auto m = json::parse(s);
 
     auto fri = m.get<jjjson::Friend>();
@@ -493,20 +547,19 @@ void Inform(jjjson::usr user)
   }
 }
 
-
 int Logout(jjjson::usr user)
-{ char f[1];
-  user.choice="logout"; 
-  json j=user;
-  string s=j.dump();
-  send(cfd,s.c_str(),s.size(),0);
-  recv(cfd,f,1,0);
-  if(f[0]=='1')
-  return 1;
+{
+  char f[1];
+  user.choice = "logout";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] == '1')
+    return 1;
   else
-  return 0;
+    return 0;
 }
-
 
 int menu(jjjson::usr user)
 {
@@ -537,13 +590,16 @@ int menu(jjjson::usr user)
     case 4:
       Inform(user);
       break;
-      case 5:
-        if(Logout(user))
-        {cout<<"注销成功"<<endl;
+    case 5:
+      if (Logout(user))
+      {
+        cout << "注销成功" << endl;
         return 0;
-        }
-        else cout<<"注销失败"<<endl; 
-        break;
+      }
+      else
+        cout << "注销失败" << endl;
+      break;
+    
     case 6:
       user.choice = "offline";
       json j;
@@ -571,8 +627,8 @@ void login()
   user.choice = "login";
   printf("请输入用户名！\n");
   cin >> user.name;
-  
-  user.pwd=getpass("请输入密码!\n");
+
+  user.pwd = getpass("请输入密码!\n");
   json j;
   j = user;
   string ifo = j.dump();
@@ -598,10 +654,10 @@ void login()
   {
     cout << "password error " << endl;
   }
-   //else if(strcmp(buf, "6") == 0)
-   //{
-     //cout<<"此账号已经登录！"<<endl;
-   //}
+  // else if(strcmp(buf, "6") == 0)
+  //{
+  // cout<<"此账号已经登录！"<<endl;
+  //}
   else
   {
     cout << "don't exit the account" << endl;
@@ -612,17 +668,18 @@ int login_menu()
   while (1)
   {
     int select;
-             cout<<"/*************************************************/"<<endl;
-cout<<"/*  ____   _                  ____ _           _    */"<<endl;
-cout<<"/* / ___| | |_  __ _  _ __    / ___| |__   __ _| |_  */"<<endl;
-cout<<"/* \\___ \\ | __ / _`  | '__|  | |   | '_ \\ / _` | __| */"<<endl;
-cout<<"/*  ___)  | | | (_|  | |     | |___| | | | (_| | |_  */"<<endl;
-cout<<"/* |____/  \\__ \\__,_ |_|      \\____|_| |_|\\__,_|\\__| */"<<endl;
-cout<<"/*                                               */"<<endl;
-cout<<"/*************************************************/"<<endl;
+    cout << "/*************************************************/" << endl;
+    cout << "/*  ____   _                  ____ _           _    */" << endl;
+    cout << "/* / ___| | |_  __ _  _ __    / ___| |__   __ _| |_  */" << endl;
+    cout << "/* \\___ \\ | __ / _`  | '__|  | |   | '_ \\ / _` | __| */" << endl;
+    cout << "/*  ___)  | | | (_|  | |     | |___| | | | (_| | |_  */" << endl;
+    cout << "/* |____/  \\__ \\__,_ |_|      \\____|_| |_|\\__,_|\\__| */" << endl;
+    cout << "/*                                               */" << endl;
+    cout << "/*************************************************/" << endl;
     printf("    ***********        1.login          **********  \n");
     printf("   ***********         2.sign up          **********  \n");
-    printf("  ***********          3.quit               ***********  \n");
+    printf("   ***********         3.find_pwd          **********  \n");
+    printf("  ***********          4.quit               ***********  \n");
     fflush(stdin);
     scanf("%d", &select);
     switch (select)
@@ -633,7 +690,9 @@ cout<<"/*************************************************/"<<endl;
     case 2:
       sign_up();
       break;
-    case 3:
+      case 3:
+       Find_pwd();
+    case 4:
       return -1;
       break;
     }

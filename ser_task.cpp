@@ -46,6 +46,10 @@ void Sign(jjjson::usr user)
 
     write(user.fd, f, 1);
 }
+
+
+
+
 void Login(jjjson::usr user)
 {
     string value;
@@ -80,6 +84,58 @@ void Login(jjjson::usr user)
     }
     write(user.fd, f, 1);
 }
+
+
+void Find_pwd(jjjson::usr user)
+{   char buf[4096];
+    string value;
+    db->Get(leveldb::ReadOptions(),user.name,&value);
+    json i=json::parse(value);
+    auto x=i.get<jjjson::usr>();
+
+    send(user.fd,value.c_str(),value.size(),0);
+    //sleep(1);
+    //recv(user.fd,buf,4096,0);
+    //string t(buf);
+    //cout<<"thisd"<<buf<<endl;
+    //json j=json::parse(t);
+    //auto y=j.get<jjjson::usr>();
+    //if(x.answer==y.answer)
+    //{
+     //   user.pwd=x.pwd;
+   // }
+   // else
+   // {
+        //user.pwd="";
+    //}
+    //j=user;
+    //t=j.dump();
+    //send(user.fd,t.c_str(),t.size(),0);
+
+
+}
+void True_pwd(jjjson::usr user)
+{   json j;
+    string t;  
+    char buf[4096];
+    string value;
+    db->Get(leveldb::ReadOptions(),user.name,&value);
+    json i=json::parse(value);
+    auto x=i.get<jjjson::usr>();
+    if(user.answer==x.answer)
+    {   
+        user.pwd=x.pwd;
+    }
+    else
+   {
+        user.pwd.clear();
+    }
+    j=user;
+    t=j.dump();
+    send(user.fd,t.c_str(),t.size(),0);
+}
+
+
 
 void Logout(jjjson::usr user)
 {   string value;
@@ -774,6 +830,16 @@ void *task(void *arg)
         {
             Logout(user);
         }
+        else if(tmp.choice.compare("find_pwd")==0)
+        {
+            Find_pwd(user);
+        }
+        else if(tmp.choice.compare("true_pwd")==0)
+        {
+            True_pwd(user);
+        }
+
+        
 
 
         
