@@ -493,6 +493,21 @@ void Inform(jjjson::usr user)
   }
 }
 
+
+int Logout(jjjson::usr user)
+{ char f[1];
+  user.choice="logout"; 
+  json j=user;
+  string s=j.dump();
+  send(cfd,s.c_str(),s.size(),0);
+  recv(cfd,f,1,0);
+  if(f[0]=='1')
+  return 1;
+  else
+  return 0;
+}
+
+
 int menu(jjjson::usr user)
 {
   while (1)
@@ -503,7 +518,8 @@ int menu(jjjson::usr user)
     printf("   ***********          2.好友               **********  \n");
     printf("  ***********           3.群                  ***********  \n");
     printf("  ***********           4.查看通知               ***********  \n");
-    printf(" ***********            5.退出                  **********  \n");
+    printf(" ***********            5.注销账号                **********  \n");
+    printf(" ***********            6.退出                      **********  \n");
     int select;
     scanf("%d", &select);
     switch (select)
@@ -521,7 +537,14 @@ int menu(jjjson::usr user)
     case 4:
       Inform(user);
       break;
-    case 5:
+      case 5:
+        if(Logout(user))
+        {cout<<"注销成功"<<endl;
+        return 0;
+        }
+        else cout<<"注销失败"<<endl; 
+        break;
+    case 6:
       user.choice = "offline";
       json j;
       j = user;
@@ -575,10 +598,10 @@ void login()
   {
     cout << "password error " << endl;
   }
-   else if(strcmp(buf, "6") == 0)
-   {
-     cout<<"此账号已经登录！"<<endl;
-   }
+   //else if(strcmp(buf, "6") == 0)
+   //{
+     //cout<<"此账号已经登录！"<<endl;
+   //}
   else
   {
     cout << "don't exit the account" << endl;

@@ -55,13 +55,13 @@ void Login(jjjson::usr user)
     {
         auto j = json::parse(value);
         auto tmp = j.get<jjjson::usr>();
-        if(tmp.status==1)
-        {
-            f[0]='6';
-            write(user.fd, f, 1);
-            return;
+        //if(tmp.status==1)
+        //{
+          //  f[0]='6';
+           // write(user.fd, f, 1);
+           // return;
            
-        }
+        //}
         if (user.pwd == tmp.pwd) //成功
         {
             f[0] = '1';
@@ -79,6 +79,59 @@ void Login(jjjson::usr user)
         f[0] = '0'; //用户不存在
     }
     write(user.fd, f, 1);
+}
+
+void Logout(jjjson::usr user)
+{   string value;
+    string s="friend";
+    s+=user.name;
+    db->Get(leveldb::ReadOptions(),s,&value);
+    json j=json::parse(value);
+    auto tmp=j.get<jjjson::Friend>();
+    //cout<<"lala"<<j<<endl;
+    for(auto it=tmp.myfri.begin();it!=tmp.myfri.end();it++)
+    {   
+        string v;
+       string t="friend";
+       t+=*it;
+       db->Get(leveldb::ReadOptions(),t,&v);
+       json x=json::parse(v);
+       auto q=x.get<jjjson::Friend>();
+       for(auto i=q.myfri.begin();i!=q.myfri.end();it++)
+       {
+           if(*i==user.name)
+           {
+               q.myfri.erase(i);    //把我从好友的聊天列表删除
+               db->Delete(leveldb::WriteOptions(),t);
+               json c=q;
+               db->Put(leveldb::WriteOptions(),t,c.dump());
+               break;
+           }
+       }
+       string w=user.name;
+       w+=*it;
+       db->Delete(leveldb::WriteOptions(),w);  //把我和它的聊天库删了
+       w=*it;
+       w+=user.name;
+       db->Delete(leveldb::WriteOptions(),w);  //把它和我的聊天库删了
+    }
+    char f[1];
+    auto status=db->Delete(leveldb::WriteOptions(),user.name); //把自己删了
+    string h="friend";
+    h+=user.name;
+    db->Delete(leveldb::WriteOptions(),h);  //把自己的朋友表删除
+    if(status.ok())
+    {
+        f[0]='1';
+    }
+    else
+    {
+        f[0]='0';
+    }
+    
+
+
+    send(user.fd,f,1,0);
 }
 
 void Settings(jjjson::usr user)
@@ -716,6 +769,10 @@ void *task(void *arg)
                 f[0]='0';
             }
             send(user.fd,f,1,0);
+        }
+        else if(tmp.choice.compare("logout")==0)
+        {
+            Logout(user);
         }
 
 
