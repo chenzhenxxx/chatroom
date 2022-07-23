@@ -16,7 +16,7 @@
 #define PORT 10000
 #define MAXLEN 4096
 using namespace std;
-string judge;
+
 void Sign(jjjson::usr user)
 {
     string value;
@@ -55,6 +55,11 @@ void Login(jjjson::usr user)
     {
         auto j = json::parse(value);
         auto tmp = j.get<jjjson::usr>();
+        //if(tmp.status==1)
+        //{
+           // f[0]='6';
+          //  return;
+       // }
         if (user.pwd == tmp.pwd) //成功
         {
             f[0] = '1';
@@ -348,7 +353,7 @@ void Delete_fri(jjjson::usr user)
 void Chat_sb(jjjson::usr user)
 {
     string value;
-    judge.clear();
+    
     if (user.mes_fri == "quit")
         return;
     string s = user.friendname;
@@ -413,8 +418,23 @@ void *Recv_mes(void *arg)
     string s = user.name;
     s += user.friendname;
     while (1)
-    {
-        //printf("000\n");
+    {    
+        string qq;
+        db->Get(leveldb::ReadOptions(),user.name,&qq);
+        json k=json::parse(qq);
+        auto dd=k.get<jjjson::usr>();
+
+        if (dd.mes_fri=="quit")
+        {   
+            printf("over %d\n", user.fd);
+            // char buf[20]="quit";
+            // cout<<user.fd<<endl;
+            // sleep(1);
+            // send(user.fd,buf,20,0);
+            break;
+        }
+       
+        printf("000\n");
         db->Get(leveldb::ReadOptions(), s, &value);
         json j = json::parse(value);
         string t = j.dump();
@@ -438,7 +458,7 @@ void *Recv_mes(void *arg)
             db->Delete(leveldb::WriteOptions(), s);
             db->Put(leveldb::WriteOptions(), s, j.dump());
         }
-        // pthread_mutex_lock(&mutexx);
+        
         // for(auto it=p.unread.begin();it!=p.unread.end();it++)
         //{
         // if(*it=="quit")
@@ -446,16 +466,7 @@ void *Recv_mes(void *arg)
         // char buf[20]="quit";
         // break;
         //}
-        if (judge == "quit")
-        {
-            printf("over %d\n", user.fd);
-            // char buf[20]="quit";
-            // cout<<user.fd<<endl;
-            // sleep(1);
-            // send(user.fd,buf,20,0);
-            judge.clear();
-            break;
-        }
+        
         // pthread_mutex_unlock(&mutexx);
     }
     return NULL;
@@ -527,7 +538,7 @@ void Shield_fri(jjjson::usr user)
 }
 
 void *task(void *arg)
-{   judge.clear();
+{   
     pthread_detach(pthread_self());
     char buf[4096];
     memset(buf, 0, 4096);
@@ -646,18 +657,17 @@ void *task(void *arg)
         }
         else if (tmp.choice.compare("quit_chatfri") == 0)
         {
-            // pthread_join(tid,NULL);
              string value;
             db->Get(leveldb::ReadOptions(),user.name,&value);
             json j=json::parse(value);
             auto t=j.get<jjjson::usr>();
             t.choice=" ";
             t.friendname=" ";
+            t.mes_fri="quit";
             j=t;
             string z=j.dump();
             db->Delete(leveldb::WriteOptions(),user.name);
             db->Put(leveldb::WriteOptions(),user.name,z);
-            judge = "quit";
             char buf[20] = "quit";
             send(user.fd, buf, 20, 0);
         }
@@ -669,6 +679,7 @@ void *task(void *arg)
             auto t=j.get<jjjson::usr>();
             t.choice="chat_sb";
             t.friendname=user.friendname;
+            t.mes_fri="";
             j=t;
             string z=j.dump();
             db->Delete(leveldb::WriteOptions(),user.name);
