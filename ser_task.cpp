@@ -1032,6 +1032,15 @@ void *task(void *arg)
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
         }
+        else if (tmp.choice.compare("check_member") == 0)
+        {
+            string value;
+            value.clear();
+            string s = "group";
+            s += user.group;
+            db->Get(leveldb::ReadOptions(), s, &value);
+            send(user.fd, value.c_str(), value.size(), 0);
+        }
         
     }
     return NULL;
