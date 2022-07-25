@@ -49,6 +49,7 @@ namespace jjjson
         string choice;
         string mes_fri;
         time_t time;
+        string group;
         vector<string> box;
     };
     
@@ -73,11 +74,27 @@ namespace jjjson
          vector<time_t> unread_t;
 
     };
+    class Group
+    {   public:
+        string owner;
+        vector<string> manager;
+        vector<string> member;
+        vector<string> join_req;
+    };
+    class myGroup
+    {
+        public:
+        vector<string> mygroup;
+        map<string,int>status;
+        // 1群主
+        // 2群管理员
+        //3群成员
+    };
 
 
     void to_json(json &j, const usr &p)
     {
-        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box},{"time",p.time},{"mes_fri",p.mes_fri}};
+        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box},{"time",p.time},{"mes_fri",p.mes_fri},{"group",p.group}};
     }
     void from_json(const json &j, usr &p)
     {
@@ -94,6 +111,7 @@ namespace jjjson
         j.at("friendid").get_to(p.friendid);
         j.at("mes_fri").get_to(p.mes_fri);
         j.at("time").get_to(p.time);
+        j.at("group").get_to(p.group);
     }
     void to_json(json &j,const Friend &p)
     {
@@ -121,6 +139,29 @@ namespace jjjson
         j.at("unread").get_to(p.unread);
         j.at("time").get_to(p.time);
         j.at("unread_t").get_to(p.unread_t);
+    }
+    void to_json(json &j,const Group &p)
+    {
+        j=json{{"owner",p.owner},{"manager",p.manager},{"member",p.member},{"join_req",p.join_req}};
+    }
+    void from_json(const json &j,Group &p)
+    {
+        j.at("owner").get_to(p.owner);
+        j.at("manager").get_to(p.manager);
+        j.at("member").get_to(p.member);
+        j.at("join_req").get_to(p.join_req);
+
+    }
+    void to_json(json &j,const myGroup &p)
+    {
+        j=json{{"mygroup",p.mygroup},{"status",p.status}};
+    }
+    void from_json(const json &j,myGroup &p)
+    {
+        j.at("mygroup").get_to(p.mygroup);
+        j.at("status").get_to(p.status);
+        
+
     }
 
    
