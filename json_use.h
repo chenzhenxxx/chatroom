@@ -86,9 +86,7 @@ namespace jjjson
         public:
         vector<string> mygroup;
         map<string,int>status;
-        // 1群主
-        // 2群管理员
-        //3群成员
+       
     };
 
 

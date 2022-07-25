@@ -710,7 +710,42 @@ void Enter_group(jjjson::usr user)
 void Group(jjjson::usr user)
 {
   while (1)
-  {
+  { char buf[4096];
+   memset(buf,0,4096);
+    string s;
+    json j; 
+    user.choice="look_group";
+    j=user;
+    s=j.dump();
+    send(cfd,s.c_str(),s.size(),0);
+    recv(cfd,buf,4096,0);
+    buf[strlen(buf)]='\0';
+    string t(buf);
+    j=json::parse(t);
+    auto tmp=j.get<jjjson::myGroup>();
+    cout<<"*********群名       ********身份********"<<endl;
+    for(auto it=tmp.mygroup.begin();it!=tmp.mygroup.end();it++)
+    {
+      cout<<"        "<<*it<<"              ";
+      if(tmp.status[*it]==1)
+      {
+        cout<<"owner"<<endl;
+      }
+      else if(tmp.status[*it]==2)
+      {
+        cout<<"manager"<<endl;
+      }
+      else if(tmp.status[*it]==3)
+      {
+        cout<<"member"<<endl;
+      }
+
+    }
+
+
+
+
+
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.建立群聊          **********  \n");
     printf("   ***********          2.申请加入群聊           **********  \n");

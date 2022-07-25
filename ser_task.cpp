@@ -46,6 +46,7 @@ void Sign(jjjson::usr user)
         s="group";
         s+=user.name;
         jjjson::myGroup g;
+        g.mygroup.clear();g.status.clear();
         m=g;
         db->Put(leveldb::WriteOptions(),s,m.dump());
         f[0] = '1';
@@ -1022,6 +1023,16 @@ void *task(void *arg)
         {
             Deal_group_req(user);
         }
+        else if (tmp.choice.compare("look_group") == 0)
+        {
+            string value;
+            value.clear();
+            string s = "group";
+            s += user.name;
+            db->Get(leveldb::ReadOptions(), s, &value);
+            send(user.fd, value.c_str(), value.size(), 0);
+        }
+        
     }
     return NULL;
 }
