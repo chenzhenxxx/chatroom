@@ -682,7 +682,6 @@ void Build_create(jjjson::usr user)
     else
     {
         f[0] = '0';
-        
     }
 
     send(user.fd, f, 1, 0);
@@ -913,6 +912,24 @@ void Kick_sb(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
+    s = "group";
+    s += user.friendname;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tq = j.get<jjjson::myGroup>();
+    for (auto it = tq.mygroup.begin(); it != tq.mygroup.end(); it++)
+    {
+        if (*it == user.group)
+        {
+            tq.mygroup.erase(it);
+            break;
+        }
+    }
+    j = tq;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+
     char buf[4096];
     db->Get(leveldb::ReadOptions(), user.friendname, &value);
     j = json::parse(value);
@@ -925,64 +942,59 @@ void Kick_sb(jjjson::usr user)
 }
 
 void Disband_group(jjjson::usr user)
-{   string s="group";
-    s+=user.group;
+{
+    string s = "group";
+    s += user.group;
     string value;
     json j;
-    db->Get(leveldb::ReadOptions(),s,&value);
-    j=json::parse(value);
-    auto tmp=j.get<jjjson::Group>();
-    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
-    {   string t,v;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Group>();
+    for (auto it = tmp.member.begin(); it != tmp.member.end(); it++)
+    {
+        string t, v;
         json k;
-        string r; 
-        t="group";
-        t+=*it;
-        db->Get(leveldb::ReadOptions(),t,&v);
-        k=json::parse(v);
-        auto tt=k.get<jjjson::myGroup>();
-        for(auto i=tt.mygroup.begin();i!=tt.mygroup.end();i++)
+        string r;
+        t = "group";
+        t += *it;
+        db->Get(leveldb::ReadOptions(), t, &v);
+        k = json::parse(v);
+        auto tt = k.get<jjjson::myGroup>();
+        for (auto i = tt.mygroup.begin(); i != tt.mygroup.end(); i++)
         {
-            if(*i==user.group)
+            if (*i == user.group)
             {
                 tt.mygroup.erase(i);
-                //tt.status[user.group]=0;
+                // tt.status[user.group]=0;
                 break;
             }
-            
         }
-        db->Delete(leveldb::WriteOptions(),t);
-        k=tt;
-        db->Put(leveldb::WriteOptions(),t,k.dump());
-        db->Get(leveldb::ReadOptions(),*it,&v);
-         k=json::parse(v);
-         auto y=k.get<jjjson::usr>();
-         char buf[4096];
-         sprintf(buf,"the group :%s 已经被群主%s解散",user.group.c_str(),user.name.c_str());
-         y.box.push_back(buf);
-         k=y;
-         db->Delete(leveldb::WriteOptions(),*it);
-         db->Put(leveldb::WriteOptions(),*it,k.dump());
-
-
-
+        db->Delete(leveldb::WriteOptions(), t);
+        k = tt;
+        db->Put(leveldb::WriteOptions(), t, k.dump());
+        db->Get(leveldb::ReadOptions(), *it, &v);
+        k = json::parse(v);
+        auto y = k.get<jjjson::usr>();
+        char buf[4096];
+        sprintf(buf, "the group :%s 已经被群主%s解散", user.group.c_str(), user.name.c_str());
+        y.box.push_back(buf);
+        k = y;
+        db->Delete(leveldb::WriteOptions(), *it);
+        db->Put(leveldb::WriteOptions(), *it, k.dump());
     }
 
-    db->Delete(leveldb::WriteOptions(),s);  //删群
-
-   
-
+    db->Delete(leveldb::WriteOptions(), s); //删群
 }
 
 void Look_g(jjjson::usr user)
 {
-   char f[1];
+    char f[1];
     string value;
     string s = "group";
     s += user.group;
-    cout<<s<<endl;
+    cout << s << endl;
     auto status = db->Get(leveldb::ReadOptions(), s, &value);
-    if (!status.ok())  //群不存在
+    if (!status.ok()) //群不存在
     {
         f[0] = '1';
     }
@@ -1008,7 +1020,7 @@ void Look_g(jjjson::usr user)
                 break;
             }
         }
-         for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++) //已经是群管理
+        for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++) //已经是群管理
         {
             if (*it == user.name)
             {
@@ -1016,14 +1028,76 @@ void Look_g(jjjson::usr user)
                 break;
             }
         }
-        if(tmp.owner==user.name)
+        if (tmp.owner == user.name)
         {
-            f[0]='6';
+            f[0] = '6';
         }
     }
 
     send(user.fd, f, 1, 0);
 }
+
+void Withdraw_group(jjjson::usr user)
+{
+    string value;
+    json j;
+    string s = "group";
+    s += user.group;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j=json::parse(value);
+    auto tmp=j.get<jjjson::Group>();
+    if(user.name==tmp.owner) //群主要退群 (等于把群解散)
+    {
+       Disband_group(user);
+       
+    }
+
+    else
+    {
+    for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
+    {
+        if(*it==user.name)
+        {
+            tmp.manager.erase(it);
+            break;
+        }
+    }
+
+    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
+    {
+        if(*it==user.name)
+        {
+            tmp.member.erase(it);
+            break;
+        }
+    }
+    j=tmp;
+    db->Delete(leveldb::WriteOptions(),s);
+    db->Put(leveldb::WriteOptions(),s,j.dump());
+    s="group";
+    s+=user.name;
+    db->Get(leveldb::ReadOptions(),s,&value);
+     j=json::parse(value);
+    auto t=j.get<jjjson::myGroup>();
+    for(auto i=t.mygroup.begin();i!=t.mygroup.end();i++)
+    {
+        if(*i==user.group)
+        {
+            t.mygroup.erase(i);
+            break;
+        }
+    }
+    j=t;
+    db->Delete(leveldb::WriteOptions(),s);
+    db->Put(leveldb::WriteOptions(),s,j.dump());
+    }
+
+
+
+
+
+}
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -1261,13 +1335,17 @@ void *task(void *arg)
         {
             Kick_sb(user);
         }
-        else if (tmp.choice.compare("look_g") == 0)  
+        else if (tmp.choice.compare("look_g") == 0)
         {
             Look_g(user);
         }
-        else if(tmp.choice.compare("disband_group")==0)
+        else if (tmp.choice.compare("disband_group") == 0)
         {
             Disband_group(user);
+        }
+        else if (tmp.choice.compare("withdraw_group") == 0)
+        {
+            Withdraw_group(user);
         }
     }
     return NULL;

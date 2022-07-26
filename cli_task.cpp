@@ -833,6 +833,28 @@ void kick_sb(jjjson::usr user)
     }
   }
 }
+
+void withdraw_group(jjjson::usr user)
+{
+  cout<<"请确认你要退出群："<<user.group<<endl;
+  cout<<"*****1.确认       *****2.取消****"<<endl;
+  string select;
+  cin>>select;
+  if(select=="1")
+  {
+     user.choice="withdraw_group";
+     json j;
+     string s;
+     j=user;
+     s=j.dump();
+     send(cfd,s.c_str(),s.size(),0);
+  }
+  else
+  {
+    return;
+  }
+}
+
 void Enter_group(jjjson::usr user)
 {
   char f[1];
@@ -879,6 +901,7 @@ void Enter_group(jjjson::usr user)
     case 3:
       break;
     case 4:
+        withdraw_group(user);
       break;
     case 5:
       deal_group_req(user);
