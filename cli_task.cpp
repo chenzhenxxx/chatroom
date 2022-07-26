@@ -673,20 +673,23 @@ void check_member(jjjson::usr user)
       cout << "*******" << *it << "**********manager****" << endl;
   }
   for (auto it = tmp.member.begin(); it != tmp.member.end(); it++)
-  {  int flag=1;
+  {
+    int flag = 1;
     if (tmp.owner == *it)
-    {  flag=0;
+    {
+      flag = 0;
       continue;
     }
     for (auto i = tmp.manager.begin(); i != tmp.manager.end(); i++)
     {
       if (*i == *it)
-      {  flag=0;
-         break;
+      {
+        flag = 0;
+        break;
       }
     }
-    if(flag==0)
-    continue;
+    if (flag == 0)
+      continue;
     cout << "*******" << *it << "**********member****" << endl;
   }
 }
@@ -713,66 +716,122 @@ void set_manager(jjjson::usr user)
     string select;
     cin >> select;
     if (select == "1")
-    { string tmpname=user.name;
-     cout << "请输入想要添加的管理员" << endl;
+    {
+      string tmpname = user.name;
+      cout << "请输入想要添加的管理员" << endl;
       cin >> user.name;
-       user.friendname=user.name;
+      user.friendname = user.name;
       user.choice = "check_group";
       j = user;
       s = j.dump();
       send(cfd, s.c_str(), s.size(), 0);
       recv(cfd, f, 1, 0);
-      user.name=tmpname;
-      if (f[0] != '4'&&f[0]!='6')
+      user.name = tmpname;
+      if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
       {
-       cout << "不是群成员" << endl;
-       return;
-      }
-     if (f[0] == '5' || f[0] == '6')
-      {
-       cout << "已是管理员" << endl;
+        cout << "不是群成员" << endl;
         return;
       }
-     user.choice = "set_manager";
+      if (f[0] == '5' || f[0] == '6')
+      {
+        cout << "已是管理员" << endl;
+        return;
+      }
+      user.choice = "set_manager";
     }
     else if (select == "2")
-    {  string tmpname=user.name;
-     cout << "请输入想要撤销的管理员" << endl;
+    {
+      string tmpname = user.name;
+      cout << "请输入想要撤销的管理员" << endl;
       cin >> user.name;
-      user.friendname=user.name;
+      user.friendname = user.name;
       user.choice = "check_group";
       j = user;
       s = j.dump();
       send(cfd, s.c_str(), s.size(), 0);
       recv(cfd, f, 1, 0);
-       user.name=tmpname;
-      if (f[0] != '5')
+      user.name = tmpname;
+       if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
       {
         cout << "不是群成员" << endl;
         return;
       }
       if ((f[0] != '5') && (f[0] != '6'))
       {
-       cout << "不是管理员" << endl;
-       return;
+        cout << "不是管理员" << endl;
+        return;
       }
       else if (f[0] == '6')
-     {
-       cout << "此人是群主无权更改" << endl;
-       return;
-     }
-     user.choice = "canel_manager";
+      {
+        cout << "此人是群主无权更改" << endl;
+        return;
+      }
+      user.choice = "canel_manager";
     }
     else
     {
-     break;
+      break;
     }
     j = user;
-   s = j.dump();
-   send(cfd, s.c_str(), s.size(), 0);
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
   }
 }
 
+void kick_sb(jjjson::usr user)
+{
+  char f[1];
+  json j;
+  string s;
+  user.choice = "check_group";
+  j = user;
+  s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] != '6' && f[0] != '5')
+  {
+    cout << "不是管理员，无权操作" << endl;
+    return;
+  }
+  while (1)
+  {
+    check_member(user);
+    
+    cout << "*****1.踢人       2.退出*****" << endl;
+    string select;
+    cin >> select;
+    if (select == "1")
+    {  string tmpname = user.name;
+      cout << "请输入想要踢的人" << endl;
+      cin >> user.name;
+      user.friendname = user.name;
+      user.choice = "check_group";
+      j = user;
+      s = j.dump();
+      send(cfd, s.c_str(), s.size(), 0);
+      recv(cfd, f, 1, 0);
+      user.name = tmpname;
+       if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
+      {
+        cout << "不是群成员" << endl;
+        return;
+      }
+      if (f[0] == '5' || f[0] == '6')
+      {
+        cout << "是管理员，无法踢人" << endl;
+        return;
+      }
+      user.choice="kick_sb";
+      j=user;
+      s=j.dump();
+      send(cfd,s.c_str(),s.size(),0);
+    }
+    else
+    {
+      break;
+    }
+  }
+}
 void Enter_group(jjjson::usr user)
 {
   char f[1];
@@ -790,7 +849,7 @@ void Enter_group(jjjson::usr user)
     cout << "该群不存在" << endl;
     return;
   }
-  else if (f[0] != '4' && f[0] != '6'&&f[0]!='5')
+  else if (f[0] != '4' && f[0] != '6' && f[0] != '5')
   {
     cout << "你不是该群成员" << endl;
     return;
@@ -824,6 +883,7 @@ void Enter_group(jjjson::usr user)
       deal_group_req(user);
       break;
     case 6:
+      kick_sb(user);
       break;
     }
     if (select == 7)

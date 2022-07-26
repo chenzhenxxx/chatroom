@@ -852,8 +852,8 @@ void Set_manager(jjjson::usr user)
         s+=user.friendname;
         db->Get(leveldb::ReadOptions(),s,&value);
         j=json::parse(value);
-        cout<<"佛"<<s<<endl;
-        cout<<j<<endl;
+        //cout<<"佛"<<s<<endl;
+        //cout<<j<<endl;
         auto t=j.get<jjjson::myGroup>();
         t.status[user.group]=2;
         j=t;
@@ -900,8 +900,8 @@ void Set_manager(jjjson::usr user)
         s+=user.friendname;
         db->Get(leveldb::ReadOptions(),s,&value);
         j=json::parse(value);
-        cout<<"佛挡杀佛法是"<<s<<endl;
-        cout<<value<<endl;
+        //cout<<"佛挡杀佛法是"<<s<<endl;
+        //cout<<value<<endl;
         auto t=j.get<jjjson::myGroup>();
         t.status[user.group]=3;
         j=t;
@@ -923,6 +923,29 @@ void Set_manager(jjjson::usr user)
     }
 }
 
+void Kick_sb(jjjson::usr user)
+{
+    string value;
+    string s;
+    json j;
+    s="group";
+    s+=user.group;
+    db->Get(leveldb::ReadOptions(),s,&value);
+    j=json::parse(value);
+    auto tmp=j.get<jjjson::Group>();
+    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
+    {   
+        if(*it==user.friendname)
+        {
+            tmp.member.erase(it);
+            break;
+        }
+    }
+    j=tmp;
+    db->Delete(leveldb::WriteOptions(),s);
+    db->Put(leveldb::WriteOptions(),s,j.dump());
+
+}
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -1155,6 +1178,10 @@ void *task(void *arg)
         else if(tmp.choice.compare("set_manager")==0||tmp.choice.compare("canel_manager")==0)
         {
             Set_manager(user);
+        }
+        else if(tmp.choice.compare("kick_sb")==0)
+        {
+            Kick_sb(user);
         }
         
     }
