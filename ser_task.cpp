@@ -43,13 +43,14 @@ void Sign(jjjson::usr user)
         s += user.name;
         db->Put(leveldb::WriteOptions(), s, m.dump()); //初始化朋友表
 
-        s="group";
-        s+=user.name;
+        s = "group";
+        s += user.name;
         jjjson::myGroup g;
-        g.mygroup.clear();g.status.clear();
-        m=g;
-        db->Put(leveldb::WriteOptions(),s,m.dump());
-        db->Get(leveldb::ReadOptions(),s,&value);
+        g.mygroup.clear();
+        g.status.clear();
+        m = g;
+        db->Put(leveldb::WriteOptions(), s, m.dump());
+        db->Get(leveldb::ReadOptions(), s, &value);
         f[0] = '1';
     }
 
@@ -653,7 +654,7 @@ void Build_create(jjjson::usr user)
     string value;
     string s = "group";
     s += user.group;
-    cout<<s<<endl;
+    cout << s << endl;
     auto status = db->Get(leveldb::ReadOptions(), s, &value);
     if (!status.ok())
     {
@@ -664,19 +665,326 @@ void Build_create(jjjson::usr user)
         g.member.push_back(user.name);
         g.join_req.clear();
         json k = g;
-         db->Put(leveldb::WriteOptions(), s, k.dump());
-         s.clear();
-         s = "group";
-        s += user.name;
-        db->Get(leveldb::ReadOptions(),s,&value);
-        cout<<"firstgroup"<<endl;
-        k=json::parse(value);
-        auto my_group=k.get<jjjson::myGroup>();
-        my_group.mygroup.push_back(user.group);
-        my_group.status[user.group] = 1;  //群主
-        k = my_group;
-        db->Delete(leveldb::WriteOptions(),s);
         db->Put(leveldb::WriteOptions(), s, k.dump());
+        s.clear();
+        s = "group";
+        s += user.name;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        cout << "firstgroup" << endl;
+        k = json::parse(value);
+        auto my_group = k.get<jjjson::myGroup>();
+        my_group.mygroup.push_back(user.group);
+        my_group.status[user.group] = 1; //群主
+        k = my_group;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, k.dump());
+    }
+    else
+    {
+        f[0] = '0';
+        
+    }
+
+    send(user.fd, f, 1, 0);
+}
+
+void Join_group(jjjson::usr user)
+{
+    string value;
+    json j;
+    string s = "group";
+    s += user.group;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Group>();
+    tmp.join_req.push_back(user.name);
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+    for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++)
+    {
+        db->Get(leveldb::ReadOptions(), *it, &value); //放到消息列表
+        j = json::parse(value);
+        auto q = j.get<jjjson::usr>();
+        char buf[4096];
+        memset(buf, 0, sizeof(buf));
+        sprintf(buf, "%s want to  enter %s", user.name.c_str(), user.group.c_str());
+        q.box.push_back(buf);
+        j = q;
+        db->Delete(leveldb::WriteOptions(), *it);
+        db->Put(leveldb::WriteOptions(), *it, j.dump());
+    }
+}
+
+void Deal_group_req(jjjson::usr user)
+{
+
+    if (user.choice == "agree_group")
+    {
+        string value;
+        json j;
+        string s = "group";
+        s += user.group;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        auto tmp = j.get<jjjson::Group>();
+        tmp.member.push_back(user.friendname);
+        for (auto it = tmp.join_req.begin(); it != tmp.join_req.end(); it++)
+        {
+            if (*it == user.friendname)
+            {
+                tmp.join_req.erase(it);
+                break;
+            }
+        }
+        j = tmp;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+
+        s = "group";
+        s += user.friendname;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        cout << "this " << j << endl;
+        auto t = j.get<jjjson::myGroup>();
+        t.mygroup.push_back(user.group);
+        t.status[user.group] = 3;
+        j = t;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+
+        db->Get(leveldb::ReadOptions(), user.friendname, &value); //放到消息列表
+        j = json::parse(value);
+        auto q = j.get<jjjson::usr>();
+        char buf[4096];
+        memset(buf, 0, sizeof(buf));
+        sprintf(buf, "%s accept  you to enter %s", user.name.c_str(), user.group.c_str());
+        q.box.push_back(buf);
+        j = q;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    }
+
+    else if (user.choice == "reject_group")
+    {
+        string value;
+        json j;
+        string s = "group";
+        s += user.group;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        auto tmp = j.get<jjjson::Group>();
+        for (auto it = tmp.join_req.begin(); it != tmp.join_req.end(); it++)
+        {
+            if (*it == user.name)
+            {
+                tmp.join_req.erase(it);
+                break;
+            }
+        }
+        j = tmp;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+
+        db->Get(leveldb::ReadOptions(), user.friendname, &value); //放到消息列表
+        j = json::parse(value);
+        auto q = j.get<jjjson::usr>();
+        char buf[4096];
+        memset(buf, 0, sizeof(buf));
+        sprintf(buf, "%s reject  you to enter %s", user.name.c_str(), user.group.c_str());
+        q.box.push_back(buf);
+        j = q;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    }
+}
+
+void Set_manager(jjjson::usr user)
+{
+    cout << "1" << endl;
+    if (user.choice == "set_manager")
+    {
+        string s;
+        string value;
+        json j;
+        s = "group";
+        s += user.group;
+        cout << "hi" << s << endl;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        auto tmp = j.get<jjjson::Group>();
+        tmp.manager.push_back(user.friendname);
+        j = tmp;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+        s.clear();
+        s = "group";
+        s += user.friendname;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        // cout<<"佛"<<s<<endl;
+        // cout<<j<<endl;
+        auto t = j.get<jjjson::myGroup>();
+        t.status[user.group] = 2;
+        j = t;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+
+        char buf[4096];
+        memset(buf, 0, 4096);
+        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        j = json::parse(value);
+        auto p = j.get<jjjson::usr>();
+        sprintf(buf, "%s set you become manager!\n", user.name.c_str());
+        p.box.push_back(buf);
+        j = p;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    }
+    else if (user.choice == "canel_manager")
+    {
+        string s;
+        string value;
+        json j;
+        s = "group";
+        s += user.group;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        auto tmp = j.get<jjjson::Group>();
+        for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++)
+        {
+            if (*it == user.friendname)
+            {
+                tmp.manager.erase(it);
+                break;
+            }
+        }
+
+        j = tmp;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+        value.clear();
+        s.clear();
+        s = "group";
+        s += user.friendname;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        // cout<<"佛挡杀佛法是"<<s<<endl;
+        // cout<<value<<endl;
+        auto t = j.get<jjjson::myGroup>();
+        t.status[user.group] = 3;
+        j = t;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+
+        char buf[4096];
+        memset(buf, 0, 4096);
+        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        j = json::parse(value);
+        auto p = j.get<jjjson::usr>();
+        sprintf(buf, "%s canel your manager!\n", user.name.c_str());
+        p.box.push_back(buf);
+        j = p;
+        db->Delete(leveldb::WriteOptions(), user.friendname);
+        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    }
+}
+
+void Kick_sb(jjjson::usr user)
+{
+    string value;
+    string s;
+    json j;
+    s = "group";
+    s += user.group;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Group>();
+    for (auto it = tmp.member.begin(); it != tmp.member.end(); it++)
+    {
+        if (*it == user.friendname)
+        {
+            tmp.member.erase(it);
+            break;
+        }
+    }
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+    char buf[4096];
+    db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    j = json::parse(value);
+    auto t = j.get<jjjson::usr>();
+    sprintf(buf, "%s already kick you from group : %s", user.name.c_str(), user.group.c_str());
+    t.box.push_back(buf);
+    j = t;
+    db->Delete(leveldb::WriteOptions(), user.friendname);
+    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+}
+
+void Disband_group(jjjson::usr user)
+{   string s="group";
+    s+=user.group;
+    string value;
+    json j;
+    db->Get(leveldb::ReadOptions(),s,&value);
+    j=json::parse(value);
+    auto tmp=j.get<jjjson::Group>();
+    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
+    {   string t,v;
+        json k;
+        string r; 
+        t="group";
+        t+=*it;
+        db->Get(leveldb::ReadOptions(),t,&v);
+        k=json::parse(v);
+        auto tt=k.get<jjjson::myGroup>();
+        for(auto i=tt.mygroup.begin();i!=tt.mygroup.end();i++)
+        {
+            if(*i==user.group)
+            {
+                tt.mygroup.erase(i);
+                //tt.status[user.group]=0;
+                break;
+            }
+            
+        }
+        db->Delete(leveldb::WriteOptions(),t);
+        k=tt;
+        db->Put(leveldb::WriteOptions(),t,k.dump());
+        db->Get(leveldb::ReadOptions(),*it,&v);
+         k=json::parse(v);
+         auto y=k.get<jjjson::usr>();
+         char buf[4096];
+         sprintf(buf,"the group :%s 已经被群主%s解散",user.group.c_str(),user.name.c_str());
+         y.box.push_back(buf);
+         k=y;
+         db->Delete(leveldb::WriteOptions(),*it);
+         db->Put(leveldb::WriteOptions(),*it,k.dump());
+
+
+
+    }
+
+    db->Delete(leveldb::WriteOptions(),s);  //删群
+
+   
+
+}
+
+void Look_g(jjjson::usr user)
+{
+   char f[1];
+    string value;
+    string s = "group";
+    s += user.group;
+    cout<<s<<endl;
+    auto status = db->Get(leveldb::ReadOptions(), s, &value);
+    if (!status.ok())  //群不存在
+    {
+        f[0] = '1';
     }
     else
     {
@@ -715,247 +1023,6 @@ void Build_create(jjjson::usr user)
     }
 
     send(user.fd, f, 1, 0);
-}
-
-void Join_group(jjjson::usr user)
-{
-    string value;
-    json j;
-    string s = "group";
-    s += user.group;
-    db->Get(leveldb::ReadOptions(), s, &value);
-    j = json::parse(value);
-    auto tmp = j.get<jjjson::Group>();
-    tmp.join_req.push_back(user.name);
-    j = tmp;
-    db->Delete(leveldb::WriteOptions(), s);
-    db->Put(leveldb::WriteOptions(), s, j.dump());
-
-    for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
-    {  
-       db->Get(leveldb::ReadOptions(), *it, &value);    //放到消息列表
-        j = json::parse(value);
-        auto q = j.get<jjjson::usr>();
-        char buf[4096];
-        memset(buf, 0, sizeof(buf));
-        sprintf(buf, "%s want to  enter %s", user.name.c_str(),user.group.c_str());
-        q.box.push_back(buf);
-        j = q;
-        db->Delete(leveldb::WriteOptions(),*it);
-        db->Put(leveldb::WriteOptions(), *it, j.dump());
-    }
-}
-
-void Deal_group_req(jjjson::usr user)
-{
-
-    if (user.choice == "agree_group")
-    {
-        string value;
-        json j;
-        string s = "group";
-        s += user.group;
-        db->Get(leveldb::ReadOptions(), s, &value);
-        j = json::parse(value);
-        auto tmp = j.get<jjjson::Group>();
-        tmp.member.push_back(user.friendname);
-        for (auto it = tmp.join_req.begin(); it != tmp.join_req.end(); it++)
-        {
-            if (*it == user.friendname)
-            {
-                tmp.join_req.erase(it);
-                break;
-            }
-        }
-        j = tmp;
-        db->Delete(leveldb::WriteOptions(), s);
-        db->Put(leveldb::WriteOptions(), s, j.dump());
-
-        s = "group";
-        s += user.friendname;
-        db->Get(leveldb::ReadOptions(), s, &value);
-        j = json::parse(value);
-        cout<<"this "<<j<<endl;
-        auto t = j.get<jjjson::myGroup>();
-        t.mygroup.push_back(user.group);
-        t.status[user.group] = 3;
-        j = t;
-        db->Delete(leveldb::WriteOptions(), s);
-        db->Put(leveldb::WriteOptions(), s, j.dump());
-
-        db->Get(leveldb::ReadOptions(), user.friendname, &value);    //放到消息列表
-        j = json::parse(value);
-        auto q = j.get<jjjson::usr>();
-        char buf[4096];
-        memset(buf, 0, sizeof(buf));
-        sprintf(buf, "%s accept  you to enter %s", user.name.c_str(),user.group.c_str());
-        q.box.push_back(buf);
-        j = q;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
-
-
-    }
-
-    else if (user.choice == "reject_group")
-    {
-        string value;
-        json j;
-        string s = "group";
-        s += user.group;
-        db->Get(leveldb::ReadOptions(), s, &value);
-        j = json::parse(value);
-        auto tmp = j.get<jjjson::Group>();
-        for (auto it = tmp.join_req.begin(); it != tmp.join_req.end(); it++)
-        {
-            if (*it == user.name)
-            {
-                tmp.join_req.erase(it);
-                break;
-            }
-        }
-        j = tmp;
-        db->Delete(leveldb::WriteOptions(), s);
-        db->Put(leveldb::WriteOptions(), s, j.dump());
-
-        db->Get(leveldb::ReadOptions(), user.friendname, &value);    //放到消息列表
-        j = json::parse(value);
-        auto q = j.get<jjjson::usr>();
-        char buf[4096];
-        memset(buf, 0, sizeof(buf));
-        sprintf(buf, "%s reject  you to enter %s", user.name.c_str(),user.group.c_str());
-        q.box.push_back(buf);
-        j = q;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
-    }
-}
-
-void Set_manager(jjjson::usr user)
-{   cout<<"1"<<endl;
-    if(user.choice=="set_manager")
-    {   string s;
-        string value;
-        json j;
-        s="group";
-        s+=user.group;
-        cout<<"hi"<<s<<endl;
-        db->Get(leveldb::ReadOptions(),s,&value);
-        j=json::parse(value);
-        auto tmp=j.get<jjjson::Group>();
-        tmp.manager.push_back(user.friendname);
-        j=tmp;
-        db->Delete(leveldb::WriteOptions(),s);
-        db->Put(leveldb::WriteOptions(),s,j.dump());
-        s.clear();
-        s="group";
-        s+=user.friendname;
-        db->Get(leveldb::ReadOptions(),s,&value);
-        j=json::parse(value);
-        //cout<<"佛"<<s<<endl;
-        //cout<<j<<endl;
-        auto t=j.get<jjjson::myGroup>();
-        t.status[user.group]=2;
-        j=t;
-        db->Delete(leveldb::WriteOptions(),s);
-        db->Put(leveldb::WriteOptions(),s,j.dump());
-
-        char buf[4096];
-        memset(buf,0,4096);
-        db->Get(leveldb::ReadOptions(),user.friendname,&value);
-        j=json::parse(value);
-        auto p=j.get<jjjson::usr>();
-        sprintf(buf,"%s set you become manager!\n",user.name.c_str());
-        p.box.push_back(buf);
-        j=p;
-        db->Delete(leveldb::WriteOptions(),user.friendname);
-        db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
-
-
-    }
-     else if(user.choice=="canel_manager")
-    {   string s;
-        string value;
-        json j;
-        s="group";
-        s+=user.group;
-        db->Get(leveldb::ReadOptions(),s,&value);
-        j=json::parse(value);
-        auto tmp=j.get<jjjson::Group>();
-        for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
-        {
-             if(*it==user.friendname)
-             {
-                tmp.manager.erase(it);
-                break;
-             }
-        }
-        
-        j=tmp;
-        db->Delete(leveldb::WriteOptions(),s);
-        db->Put(leveldb::WriteOptions(),s,j.dump());
-        value.clear();
-        s.clear();
-        s="group";
-        s+=user.friendname;
-        db->Get(leveldb::ReadOptions(),s,&value);
-        j=json::parse(value);
-        //cout<<"佛挡杀佛法是"<<s<<endl;
-        //cout<<value<<endl;
-        auto t=j.get<jjjson::myGroup>();
-        t.status[user.group]=3;
-        j=t;
-        db->Delete(leveldb::WriteOptions(),s);
-        db->Put(leveldb::WriteOptions(),s,j.dump());
-
-        char buf[4096];
-        memset(buf,0,4096);
-        db->Get(leveldb::ReadOptions(),user.friendname,&value);
-        j=json::parse(value);
-        auto p=j.get<jjjson::usr>();
-        sprintf(buf,"%s canel your manager!\n",user.name.c_str());
-        p.box.push_back(buf);
-        j=p;
-        db->Delete(leveldb::WriteOptions(),user.friendname);
-        db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
-
-
-    }
-}
-
-void Kick_sb(jjjson::usr user)
-{
-    string value;
-    string s;
-    json j;
-    s="group";
-    s+=user.group;
-    db->Get(leveldb::ReadOptions(),s,&value);
-    j=json::parse(value);
-    auto tmp=j.get<jjjson::Group>();
-    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
-    {   
-        if(*it==user.friendname)
-        {
-            tmp.member.erase(it);
-            break;
-        }
-    }
-    j=tmp;
-    db->Delete(leveldb::WriteOptions(),s);
-    db->Put(leveldb::WriteOptions(),s,j.dump());
-    
-    char buf[4096];
-    db->Get(leveldb::ReadOptions(),user.friendname,&value);
-    j=json::parse(value);
-    auto t=j.get<jjjson::usr>();
-    sprintf(buf,"%s already kick you from group : %s",user.name.c_str(),user.group.c_str());
-    t.box.push_back(buf);
-    j=t;
-    db->Delete(leveldb::WriteOptions(),user.friendname);
-    db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
-
-
 }
 void *task(void *arg)
 {
@@ -1148,7 +1215,7 @@ void *task(void *arg)
         {
             True_pwd(user);
         }
-        else if (tmp.choice.compare("check_group") == 0)
+        else if (tmp.choice.compare("build_group") == 0)
         {
             Build_create(user);
         }
@@ -1186,15 +1253,22 @@ void *task(void *arg)
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
         }
-        else if(tmp.choice.compare("set_manager")==0||tmp.choice.compare("canel_manager")==0)
+        else if (tmp.choice.compare("set_manager") == 0 || tmp.choice.compare("canel_manager") == 0)
         {
             Set_manager(user);
         }
-        else if(tmp.choice.compare("kick_sb")==0)
+        else if (tmp.choice.compare("kick_sb") == 0)
         {
             Kick_sb(user);
         }
-        
+        else if (tmp.choice.compare("look_g") == 0)  
+        {
+            Look_g(user);
+        }
+        else if(tmp.choice.compare("disband_group")==0)
+        {
+            Disband_group(user);
+        }
     }
     return NULL;
 }

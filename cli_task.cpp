@@ -529,7 +529,7 @@ void Build_group(jjjson::usr user)
   char f[1];
   cout << "请输入想要创建的群" << endl;
   cin >> user.group;
-  user.choice = "check_group";
+  user.choice = "build_group";
   json j = user;
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -549,7 +549,7 @@ void Join_group(jjjson::usr user)
   char f[1];
   cout << "请输入想加入的群聊" << endl;
   cin >> user.group;
-  user.choice = "check_group";
+  user.choice = "look_g";
   json j = user;
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -700,7 +700,7 @@ void set_manager(jjjson::usr user)
   char f[1];
   json j;
   string s;
-  user.choice = "check_group";
+  user.choice = "look_g";
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -721,13 +721,13 @@ void set_manager(jjjson::usr user)
       cout << "请输入想要添加的管理员" << endl;
       cin >> user.name;
       user.friendname = user.name;
-      user.choice = "check_group";
+      user.choice = "look_g";
       j = user;
       s = j.dump();
       send(cfd, s.c_str(), s.size(), 0);
       recv(cfd, f, 1, 0);
       user.name = tmpname;
-      if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
+      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
       {
         cout << "不是群成员" << endl;
         return;
@@ -745,13 +745,13 @@ void set_manager(jjjson::usr user)
       cout << "请输入想要撤销的管理员" << endl;
       cin >> user.name;
       user.friendname = user.name;
-      user.choice = "check_group";
+      user.choice = "look_g";
       j = user;
       s = j.dump();
       send(cfd, s.c_str(), s.size(), 0);
       recv(cfd, f, 1, 0);
       user.name = tmpname;
-       if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
+      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
       {
         cout << "不是群成员" << endl;
         return;
@@ -783,7 +783,7 @@ void kick_sb(jjjson::usr user)
   char f[1];
   json j;
   string s;
-  user.choice = "check_group";
+  user.choice = "look_g";
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -796,22 +796,23 @@ void kick_sb(jjjson::usr user)
   while (1)
   {
     check_member(user);
-    
+
     cout << "*****1.踢人       2.退出*****" << endl;
     string select;
     cin >> select;
     if (select == "1")
-    {  string tmpname = user.name;
+    {
+      string tmpname = user.name;
       cout << "请输入想要踢的人" << endl;
       cin >> user.name;
       user.friendname = user.name;
-      user.choice = "check_group";
+      user.choice = "look_g";
       j = user;
       s = j.dump();
       send(cfd, s.c_str(), s.size(), 0);
       recv(cfd, f, 1, 0);
       user.name = tmpname;
-       if (f[0] != '4' && f[0] != '5'&&f[0]!='6')
+      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
       {
         cout << "不是群成员" << endl;
         return;
@@ -821,10 +822,10 @@ void kick_sb(jjjson::usr user)
         cout << "是管理员，无法踢人" << endl;
         return;
       }
-      user.choice="kick_sb";
-      j=user;
-      s=j.dump();
-      send(cfd,s.c_str(),s.size(),0);
+      user.choice = "kick_sb";
+      j = user;
+      s = j.dump();
+      send(cfd, s.c_str(), s.size(), 0);
     }
     else
     {
@@ -839,7 +840,7 @@ void Enter_group(jjjson::usr user)
   cin >> user.group;
   if (user.group == "0")
     return;
-  user.choice = "check_group";
+  user.choice = "look_g";
   json j = user;
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -890,6 +891,40 @@ void Enter_group(jjjson::usr user)
     {
       break;
     }
+  }
+}
+
+void disband_group(jjjson::usr user)
+{
+  char f[1];
+  cout << "请输入解散的群聊" << endl;
+  cin >> user.group;
+  user.choice = "look_g";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] == '1')
+  {
+    cout << "该群不存在" << endl;
+    return;
+  }
+  else if (f[0] != '6')
+  {
+    cout << "你不是该群群主" << endl;
+    return;
+  }
+  cout << "*****1.确认     2.取消*****" << endl;
+  string a;
+  cin >> a;
+  if (a != "1")
+    return;
+  else
+  {
+    user.choice = "disband_group";
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
   }
 }
 
@@ -948,6 +983,7 @@ void Group(jjjson::usr user)
       Enter_group(user);
       break;
     case 4:
+      disband_group(user);
       break;
     }
     if (select == 5)
