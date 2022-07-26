@@ -944,6 +944,17 @@ void Kick_sb(jjjson::usr user)
     j=tmp;
     db->Delete(leveldb::WriteOptions(),s);
     db->Put(leveldb::WriteOptions(),s,j.dump());
+    
+    char buf[4096];
+    db->Get(leveldb::ReadOptions(),user.friendname,&value);
+    j=json::parse(value);
+    auto t=j.get<jjjson::usr>();
+    sprintf(buf,"%s already kick you from group : %s",user.name.c_str(),user.group.c_str());
+    t.box.push_back(buf);
+    j=t;
+    db->Delete(leveldb::WriteOptions(),user.friendname);
+    db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
+
 
 }
 void *task(void *arg)
