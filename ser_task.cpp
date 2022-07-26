@@ -49,6 +49,7 @@ void Sign(jjjson::usr user)
         g.mygroup.clear();g.status.clear();
         m=g;
         db->Put(leveldb::WriteOptions(),s,m.dump());
+        db->Get(leveldb::ReadOptions(),s,&value);
         f[0] = '1';
     }
 
@@ -652,6 +653,7 @@ void Build_create(jjjson::usr user)
     string value;
     string s = "group";
     s += user.group;
+    cout<<s<<endl;
     auto status = db->Get(leveldb::ReadOptions(), s, &value);
     if (!status.ok())
     {
@@ -662,13 +664,18 @@ void Build_create(jjjson::usr user)
         g.member.push_back(user.name);
         g.join_req.clear();
         json k = g;
-        db->Put(leveldb::WriteOptions(), s, k.dump());
-        jjjson ::myGroup my_group;
+         db->Put(leveldb::WriteOptions(), s, k.dump());
+         s.clear();
+         s = "group";
+        s += user.name;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        cout<<"firstgroup"<<endl;
+        k=json::parse(value);
+        auto my_group=k.get<jjjson::myGroup>();
         my_group.mygroup.push_back(user.group);
         my_group.status[user.group] = 1;  //群主
         k = my_group;
-        s = "group";
-        s += user.name;
+        db->Delete(leveldb::WriteOptions(),s);
         db->Put(leveldb::WriteOptions(), s, k.dump());
     }
     else
@@ -693,6 +700,18 @@ void Build_create(jjjson::usr user)
                 break;
             }
         }
+         for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++) //已经是群管理
+        {
+            if (*it == user.name)
+            {
+                f[0] = '5';
+                break;
+            }
+        }
+        if(tmp.owner==user.name)
+        {
+            f[0]='6';
+        }
     }
 
     send(user.fd, f, 1, 0);
@@ -713,7 +732,7 @@ void Join_group(jjjson::usr user)
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
     for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
-    {
+    {  
        db->Get(leveldb::ReadOptions(), *it, &value);    //放到消息列表
         j = json::parse(value);
         auto q = j.get<jjjson::usr>();
@@ -809,6 +828,98 @@ void Deal_group_req(jjjson::usr user)
         j = q;
         db->Delete(leveldb::WriteOptions(), user.friendname);
         db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    }
+}
+
+void Set_manager(jjjson::usr user)
+{   cout<<"1"<<endl;
+    if(user.choice=="set_manager")
+    {   string s;
+        string value;
+        json j;
+        s="group";
+        s+=user.group;
+        cout<<"hi"<<s<<endl;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        j=json::parse(value);
+        auto tmp=j.get<jjjson::Group>();
+        tmp.manager.push_back(user.friendname);
+        j=tmp;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+        s.clear();
+        s="group";
+        s+=user.friendname;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        j=json::parse(value);
+        cout<<"佛"<<s<<endl;
+        cout<<j<<endl;
+        auto t=j.get<jjjson::myGroup>();
+        t.status[user.group]=2;
+        j=t;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+
+        char buf[4096];
+        memset(buf,0,4096);
+        db->Get(leveldb::ReadOptions(),user.friendname,&value);
+        j=json::parse(value);
+        auto p=j.get<jjjson::usr>();
+        sprintf(buf,"%s set you become manager!\n",user.name.c_str());
+        p.box.push_back(buf);
+        j=p;
+        db->Delete(leveldb::WriteOptions(),user.friendname);
+        db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
+
+
+    }
+     else if(user.choice=="canel_manager")
+    {   string s;
+        string value;
+        json j;
+        s="group";
+        s+=user.group;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        j=json::parse(value);
+        auto tmp=j.get<jjjson::Group>();
+        for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
+        {
+             if(*it==user.friendname)
+             {
+                tmp.manager.erase(it);
+                break;
+             }
+        }
+        
+        j=tmp;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+        value.clear();
+        s.clear();
+        s="group";
+        s+=user.friendname;
+        db->Get(leveldb::ReadOptions(),s,&value);
+        j=json::parse(value);
+        cout<<"佛挡杀佛法是"<<s<<endl;
+        cout<<value<<endl;
+        auto t=j.get<jjjson::myGroup>();
+        t.status[user.group]=3;
+        j=t;
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+
+        char buf[4096];
+        memset(buf,0,4096);
+        db->Get(leveldb::ReadOptions(),user.friendname,&value);
+        j=json::parse(value);
+        auto p=j.get<jjjson::usr>();
+        sprintf(buf,"%s canel your manager!\n",user.name.c_str());
+        p.box.push_back(buf);
+        j=p;
+        db->Delete(leveldb::WriteOptions(),user.friendname);
+        db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
+
+
     }
 }
 
@@ -1040,6 +1151,10 @@ void *task(void *arg)
             s += user.group;
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
+        }
+        else if(tmp.choice.compare("set_manager")==0||tmp.choice.compare("canel_manager")==0)
+        {
+            Set_manager(user);
         }
         
     }

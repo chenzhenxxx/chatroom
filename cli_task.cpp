@@ -649,80 +649,163 @@ void deal_group_req(jjjson::usr user)
   }
 }
 
-void  check_member(jjjson::usr user)
-{   json j;
-    string s;
-    char buf[4096];
-    memset(buf,0,4096);
-    user.choice="check_member";
-    j=user;
-    s=j.dump();
-    send(cfd,s.c_str(),s.size(),0);
-    recv(cfd,buf,4096,0);
-    string t(buf);
-    j=json::parse(t);
-    auto tmp=j.get<jjjson::Group>();
-    cout<<"***********"<<user.group<<"************"<<endl;
-    cout<<"*******成员*******"<<"***身份****"<<endl;
-    cout<<"*******"<<tmp.owner<<"**********owner****"<<endl;
-    for(auto it=tmp.manager.begin();it!=tmp.manager.end();it++)
-    { if(*it!=tmp.owner)
-      cout<<"*******"<<*it<<"**********manager****"<<endl;
+void check_member(jjjson::usr user)
+{
+  json j;
+  string s;
+  char buf[4096];
+  memset(buf, 0, 4096);
+  user.choice = "check_member";
+  j = user;
+  s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, buf, 4096, 0);
+  string t(buf);
+  j = json::parse(t);
+  auto tmp = j.get<jjjson::Group>();
+  cout << "***********" << user.group << "************" << endl;
+  cout << "*******成员*******"
+       << "***身份****" << endl;
+  cout << "*******" << tmp.owner << "**********owner****" << endl;
+  for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++)
+  {
+    if (*it != tmp.owner)
+      cout << "*******" << *it << "**********manager****" << endl;
+  }
+  for (auto it = tmp.member.begin(); it != tmp.member.end(); it++)
+  {  int flag=1;
+    if (tmp.owner == *it)
+    {  flag=0;
+      continue;
     }
-    for(auto it=tmp.member.begin();it!=tmp.member.end();it++)
-    { //int flag=1;
-      if(tmp.owner==*it)
-      { //flag=0;
-        continue;
+    for (auto i = tmp.manager.begin(); i != tmp.manager.end(); i++)
+    {
+      if (*i == *it)
+      {  flag=0;
+         break;
       }
-      for(auto i=tmp.manager.begin();i!=tmp.manager.end();i++)
+    }
+    if(flag==0)
+    continue;
+    cout << "*******" << *it << "**********member****" << endl;
+  }
+}
+
+void set_manager(jjjson::usr user)
+{
+
+  char f[1];
+  json j;
+  string s;
+  user.choice = "check_group";
+  j = user;
+  s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] != '6')
+  {
+    cout << "不是群主，无权操作" << endl;
+    return;
+  }
+  while (1)
+  {
+    cout << "******1.添加管理员        2.取消管理员        3.退出******" << endl;
+    string select;
+    cin >> select;
+    if (select == "1")
+    { string tmpname=user.name;
+     cout << "请输入想要添加的管理员" << endl;
+      cin >> user.name;
+       user.friendname=user.name;
+      user.choice = "check_group";
+      j = user;
+      s = j.dump();
+      send(cfd, s.c_str(), s.size(), 0);
+      recv(cfd, f, 1, 0);
+      user.name=tmpname;
+      if (f[0] != '4'&&f[0]!='6')
       {
-        if(*i==*it)
-        { //flag=0;
-          continue;
-        }
+       cout << "不是群成员" << endl;
+       return;
       }
-      cout<<"*******"<<*it<<"**********member****"<<endl;
+     if (f[0] == '5' || f[0] == '6')
+      {
+       cout << "已是管理员" << endl;
+        return;
+      }
+     user.choice = "set_manager";
     }
-
-
-
-
+    else if (select == "2")
+    {  string tmpname=user.name;
+     cout << "请输入想要撤销的管理员" << endl;
+      cin >> user.name;
+      user.friendname=user.name;
+      user.choice = "check_group";
+      j = user;
+      s = j.dump();
+      send(cfd, s.c_str(), s.size(), 0);
+      recv(cfd, f, 1, 0);
+       user.name=tmpname;
+      if (f[0] != '5')
+      {
+        cout << "不是群成员" << endl;
+        return;
+      }
+      if ((f[0] != '5') && (f[0] != '6'))
+      {
+       cout << "不是管理员" << endl;
+       return;
+      }
+      else if (f[0] == '6')
+     {
+       cout << "此人是群主无权更改" << endl;
+       return;
+     }
+     user.choice = "canel_manager";
+    }
+    else
+    {
+     break;
+    }
+    j = user;
+   s = j.dump();
+   send(cfd, s.c_str(), s.size(), 0);
+  }
 }
 
 void Enter_group(jjjson::usr user)
 {
+  char f[1];
+  cout << "请输入进入的群聊（0退出）" << endl;
+  cin >> user.group;
+  if (user.group == "0")
+    return;
+  user.choice = "check_group";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, f, 1, 0);
+  if (f[0] == '1')
+  {
+    cout << "该群不存在" << endl;
+    return;
+  }
+  else if (f[0] != '4' && f[0] != '6'&&f[0]!='5')
+  {
+    cout << "你不是该群成员" << endl;
+    return;
+  }
   while (1)
   {
-    char f[1];
-    cout << "请输入进入的群聊（0退出）" << endl;
-    cin >> user.group;
-    if (user.group == "0")
-      break;
-    user.choice = "check_group";
-    json j = user;
-    string s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, f, 1, 0);
-    if (f[0] == '1')
-    {
-      cout << "该群不存在" << endl;
-      return;
-    }
-    else if (f[0] != '4')
-    {
-      cout << "你不是该群成员" << endl;
-      return;
-    }
 
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.查看群成员列表          **********  \n");
     printf("   ***********          2.设置/取消管理员       **********  \n");
     printf("  ***********           3.开始群聊             ***********  \n");
-    printf(" ***********            4.从群聊退出           **********  \n");
+    printf(" ***********            4.退出群聊          **********  \n");
     printf(" ***********            5.处理群请求             **********  \n");
     printf(" ***********            6.踢人                    **********  \n");
-    printf(" ***********          7. 退出                   **********  \n");
+    printf(" ***********            7. 退出                   **********  \n");
     int select;
     cin >> select;
     switch (select)
@@ -731,6 +814,7 @@ void Enter_group(jjjson::usr user)
       check_member(user);
       break;
     case 2:
+      set_manager(user);
       break;
     case 3:
       break;
