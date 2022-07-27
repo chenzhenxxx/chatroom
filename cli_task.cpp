@@ -836,22 +836,139 @@ void kick_sb(jjjson::usr user)
 
 void withdraw_group(jjjson::usr user)
 {
-  cout<<"请确认你要退出群："<<user.group<<endl;
-  cout<<"*****1.确认       *****2.取消****"<<endl;
+  cout << "请确认你要退出群：" << user.group << endl;
+  cout << "*****1.确认       *****2.取消****" << endl;
   string select;
-  cin>>select;
-  if(select=="1")
+  cin >> select;
+  if (select == "1")
   {
-     user.choice="withdraw_group";
-     json j;
-     string s;
-     j=user;
-     s=j.dump();
-     send(cfd,s.c_str(),s.size(),0);
+    user.choice = "withdraw_group";
+    json j;
+    string s;
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
   }
   else
   {
     return;
+  }
+}
+
+void *recv_chat_group(jjjson::usr arg)
+{ // pthread_detach(pthread_self());
+  // jjjson::usr tmp = arg;
+  // tmp.choice = "recv_mes_gro";
+  // json j = tmp;
+  // string s = j.dump();
+  // send(cfd, s.c_str(), s.size(), 0);
+  while (1)
+  {
+
+    char buf[4096];
+    memset(buf, 0, 4096);
+
+    int ret = recv(cfd, buf, 4096, 0);
+    if ((strcmp(buf, "quit")) == 0)
+    {
+       cout << "gameover" << endl;
+      break;
+    }
+    else
+    {
+      string t(buf);
+      //cout<<"khj--"<<t<<endl;
+      json j = json::parse(t);
+      auto q = j.get<jjjson::Gro_chat>();
+      for (auto it = q.unread_mes.begin(); it != q.unread_mes.end(); it++)
+      {
+        printf("%50c", ' ');
+        cout << *it << endl;
+        printf("%40c", ' ');
+        cout << ctime(&q.unread_t[0]) << endl;
+        q.unread_t.erase(q.unread_t.begin());
+      }
+    }
+  }
+  return NULL;
+}
+
+void Check__group_history(jjjson::usr user)
+{  json j;
+   string s;
+   char buf[4096];
+   string value;
+   user.choice="check_group_history";
+   j=user;
+   s=j.dump();
+   send(cfd,s.c_str(),s.size(),0);
+   recv(cfd,buf,4096,0);
+   string t(buf);
+   cout<<t<<endl;
+   j=json::parse(t);
+   auto tmp=j.get<jjjson::Group>();
+   for (auto it = tmp.history.begin(); it !=tmp.history.end(); it++)
+  {
+    cout << *it << endl;
+    cout << ctime(&tmp.time[0]) << endl;
+    tmp.time.erase(tmp.time.begin());
+  }
+  
+
+}
+
+void chat_group(jjjson::usr user)
+{
+
+  cout << "1.开始聊天               2.查看聊天记录             3.输入其他键退出" << endl;
+  string select;
+  cin >> select;
+  if (select == "1")
+  {
+    user.choice = "offline_mes_gro";  //获取离线消息
+    json k = user;
+    string l = k.dump();
+    send(cfd, l.c_str(), l.size(), 0);
+
+    pthread_t tid;
+    thread recvv(recv_chat_group, user);
+
+    user.choice = "chat_group"; //先唤醒聊天状态
+    user.mes_fri="";
+    json j = user;
+     l = j.dump();
+    send(cfd, l.c_str(), l.size(), 0);
+    while (1)
+    {
+      string m;
+      string s;
+      s = "from:"+ user.name +":";
+      user.choice = "chat_group";
+      cin >> m;
+      s += m;
+      time_t t;
+      t = time(NULL);
+      user.mes_fri = s;
+      user.time = t;
+      if (m == "quit")
+      { user.mes_fri=m;
+        // user.choice = "quit_chatgro";
+        json j = user;
+        string l = j.dump();
+        send(cfd, l.c_str(), l.size(), 0);
+        break;
+      }
+      cout << user.name << " :" << s << endl;
+      cout << ctime(&t) << endl;
+      json j = user;
+      string l = j.dump();
+      send(cfd, l.c_str(), l.size(), 0);
+    }
+    recvv.join();
+  }
+  else if (select == "2")
+  {
+     Check__group_history(user);
   }
 }
 
@@ -899,9 +1016,10 @@ void Enter_group(jjjson::usr user)
       set_manager(user);
       break;
     case 3:
+      chat_group(user);
       break;
     case 4:
-        withdraw_group(user);
+      withdraw_group(user);
       break;
     case 5:
       deal_group_req(user);
