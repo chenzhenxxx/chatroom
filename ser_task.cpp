@@ -17,7 +17,7 @@
 #define PORT 10000
 #define MAXLEN 4096
 using namespace std;
-
+void Disband_group(jjjson::usr user);
 void Sign(jjjson::usr user)
 {
     string value;
@@ -177,11 +177,59 @@ void Logout(jjjson::usr user)
         w += user.name;
         db->Delete(leveldb::WriteOptions(), w); //把它和我的聊天库删了
     }
+    s = "group";
+    s += user.name;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto b = j.get<jjjson::myGroup>();
+    for (auto it = b.mygroup.begin(); it != b.mygroup.end(); it++)
+    {
+        string vl;
+        json q;
+        string y = "group";
+        y += *it;
+        db->Get(leveldb::ReadOptions(), y, &vl);
+        q = json::parse(vl);
+        auto k = q.get<jjjson::Group>();
+        if (k.owner == user.name) //注销的人是群主
+        {   user.group=*it;
+            Disband_group(user);
+            continue;
+        }
+        for (auto j = k.manager.begin(); j != k.manager.end(); j++)
+        {
+            if (*j == user.name)
+            {
+                k.manager.erase(j);
+                break;
+            }
+        }
+        for (auto m = k.member.begin(); m != k.member.end(); m++)
+        {
+            if (*m == user.name)
+            {
+                k.member.erase(m);
+                break;
+            }
+        }
+        q = k;
+        db->Delete(leveldb::WriteOptions(), y);   //改群信息表
+        db->Put(leveldb::WriteOptions(), y, q.dump());
+
+        s = "group_chat";  //删我和群的聊天表
+        s += *it;
+        s += user.name;
+        db->Delete(leveldb::WriteOptions(), s);
+    }
+    s = "group";
+    s += user.name;
+    db->Delete(leveldb::WriteOptions(), s);
     char f[1];
     auto status = db->Delete(leveldb::WriteOptions(), user.name); //把自己删了
     string h = "friend";
     h += user.name;
     db->Delete(leveldb::WriteOptions(), h); //把自己的朋友表删除
+
     if (status.ok())
     {
         f[0] = '1';
@@ -1120,8 +1168,8 @@ void Chat_group(jjjson::usr user)
     j = tmp;
     db->Delete(leveldb::WriteOptions(), user.name);
     db->Put(leveldb::WriteOptions(), user.name, j.dump());
-    if(user.mes_fri=="")
-     return;
+    if (user.mes_fri == "")
+        return;
     if (user.mes_fri == "quit")
     {
         string buf = "quit";
@@ -1160,8 +1208,6 @@ void Chat_group(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
-
-    
     for (auto it = t.member.begin(); it != t.member.end(); it++)
     {
         if (*it == user.name)
@@ -1222,19 +1268,14 @@ void Offline_mes_gro(jjjson::usr user)
 }
 
 void Check_group_history(jjjson::usr user)
-{  string value;
-   string s="group";
-   json j;
-   s+=user.group;
-   db->Get(leveldb::ReadOptions(),s,&value);
-   send(user.fd,value.c_str(),value.size(),0);
-
-   
-
-
-   
-   }
-
+{
+    string value;
+    string s = "group";
+    json j;
+    s += user.group;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    send(user.fd, value.c_str(), value.size(), 0);
+}
 
 void *task(void *arg)
 {
@@ -1497,7 +1538,6 @@ void *task(void *arg)
         {
             Check_group_history(user);
         }
-        
     }
     return NULL;
 }

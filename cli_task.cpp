@@ -896,13 +896,13 @@ void *recv_chat_group(jjjson::usr arg)
 void Check__group_history(jjjson::usr user)
 {  json j;
    string s;
-   char buf[4096];
+   char buf[10000];
    string value;
    user.choice="check_group_history";
    j=user;
    s=j.dump();
    send(cfd,s.c_str(),s.size(),0);
-   recv(cfd,buf,4096,0);
+   recv(cfd,buf,10000,0);
    string t(buf);
    cout<<t<<endl;
    j=json::parse(t);
