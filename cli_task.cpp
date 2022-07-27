@@ -301,9 +301,9 @@ void *recv_chat(jjjson::usr arg)
       for (auto it = q.unread.begin(); it != q.unread.end(); it++)
       {
         printf("%50c", ' ');
-        cout << tmp.friendname << " :" << *it << endl;
+        cout << LIGHT_RED<<tmp.friendname << " :" << *it << endl;
         printf("%40c", ' ');
-        cout << ctime(&q.unread_t[0]) << endl;
+        cout << ctime(&q.unread_t[0]) <<NONE<< endl;
         q.unread_t.erase(q.unread_t.begin());
       }
     }
@@ -394,8 +394,8 @@ void Chat_sb(jjjson::usr user)
         send(cfd, l.c_str(), l.size(), 0);
         break;
       }
-      cout << user.name << " :" << s << endl;
-      cout << ctime(&t) << endl;
+      cout <<LIGHT_BLUE<< user.name << " :" << s << endl;
+      cout << ctime(&t) <<NONE<< endl;
       json j = user;
       string l = j.dump();
       send(cfd, l.c_str(), l.size(), 0);
@@ -883,9 +883,9 @@ void *recv_chat_group(jjjson::usr arg)
       for (auto it = q.unread_mes.begin(); it != q.unread_mes.end(); it++)
       {
         printf("%50c", ' ');
-        cout << *it << endl;
+        cout <<LIGHT_RED<< *it<< endl;
         printf("%40c", ' ');
-        cout << ctime(&q.unread_t[0]) << endl;
+        cout << ctime(&q.unread_t[0]) <<NONE<<endl;
         q.unread_t.erase(q.unread_t.begin());
       }
     }
@@ -958,8 +958,8 @@ void chat_group(jjjson::usr user)
         send(cfd, l.c_str(), l.size(), 0);
         break;
       }
-      cout << user.name << " :" << s << endl;
-      cout << ctime(&t) << endl;
+      cout << LIGHT_BLUE<<user.name << " :" << s << endl;
+      cout << ctime(&t)<<NONE<<endl;
       json j = user;
       string l = j.dump();
       send(cfd, l.c_str(), l.size(), 0);

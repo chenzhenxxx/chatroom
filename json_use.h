@@ -31,7 +31,7 @@ using json = nlohmann::json;
 int tmpfd;
 int epollfd;
 pthread_t tid;
-pthread_mutex_t mutexx;
+//pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr
@@ -80,6 +80,8 @@ namespace jjjson
         vector<string> manager;
         vector<string> member;
         vector<string> join_req;
+        vector<string> history;
+        vector<time_t> time;
     };
     class myGroup
     {
@@ -88,6 +90,13 @@ namespace jjjson
         map<string,int>status;
        
     };
+    class Gro_chat
+    {
+        public:
+        vector<string> unread_mes;
+        vector<time_t> unread_t;
+    };
+
 
 
     void to_json(json &j, const usr &p)
@@ -140,7 +149,7 @@ namespace jjjson
     }
     void to_json(json &j,const Group &p)
     {
-        j=json{{"owner",p.owner},{"manager",p.manager},{"member",p.member},{"join_req",p.join_req}};
+        j=json{{"owner",p.owner},{"manager",p.manager},{"member",p.member},{"join_req",p.join_req},{"history",p.history},{"time",p.time}};
     }
     void from_json(const json &j,Group &p)
     {
@@ -148,6 +157,9 @@ namespace jjjson
         j.at("manager").get_to(p.manager);
         j.at("member").get_to(p.member);
         j.at("join_req").get_to(p.join_req);
+        j.at("history").get_to(p.history);
+        j.at("time").get_to(p.time);
+        
 
     }
     void to_json(json &j,const myGroup &p)
@@ -160,6 +172,15 @@ namespace jjjson
         j.at("status").get_to(p.status);
         
 
+    }
+    void to_json(json &j,const Gro_chat &p)
+    {
+        j=json{{"unread_mes",p.unread_mes},{"unread_t",p.unread_t}};
+    }
+    void from_json(const json &j,Gro_chat &p)
+    {
+        j.at("unread_mes").get_to(p.unread_mes);
+        j.at("unread_t").get_to(p.unread_t);
     }
 
    
