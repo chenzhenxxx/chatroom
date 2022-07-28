@@ -97,6 +97,7 @@ namespace jjjson
          vector<string>unread;
          vector<time_t> time;
          vector<time_t> unread_t;
+         vector<string> file;
 
     };
     class Group
@@ -165,7 +166,7 @@ namespace jjjson
 
     void to_json(json &j,const Fri_chat &p)
     {
-        j=json{{"history",p.history},{"unread",p.unread},{"time",p.time},{"unread_t",p.unread_t}};
+        j=json{{"history",p.history},{"unread",p.unread},{"time",p.time},{"unread_t",p.unread_t},{"file",p.file}};
     }
     void from_json(const json &j,Fri_chat &p)
     {
@@ -173,6 +174,7 @@ namespace jjjson
         j.at("unread").get_to(p.unread);
         j.at("time").get_to(p.time);
         j.at("unread_t").get_to(p.unread_t);
+        j.at("file").get_to(p.file);
     }
     void to_json(json &j,const Group &p)
     {

@@ -1283,9 +1283,10 @@ void Check_group_history(jjjson::usr user)
 }
 
 void *R_file(void *arg)
-{   pthread_detach(pthread_self());
+{
+    pthread_detach(pthread_self());
     char buf[4096];
-    long long tmplen=0;
+    long long tmplen = 0;
     int ret;
     memset(buf, 0, 4096);
     cout << last_path << endl;
@@ -1294,31 +1295,55 @@ void *R_file(void *arg)
     {
 
         ret = recv(last_fd, buf, 4095, 0);
-        //cout << buf << endl;
-        if(strcmp(buf,"over")==0)
-        {  cout<<"over"<<endl;
-           last_choice="ll";
+        // cout << buf << endl;
+        if (strcmp(buf, "over") == 0)
+        {
+            cout << "over" << endl;
+            last_choice = "";
             break;
         }
-        
+
         // if(ret<4096)
         // buf[ret]='\0';
         write(fd, buf, ret);
-        
-        
 
         // memset(buf,0,4096);
     }
+
     close(fd);
     return NULL;
 }
 
-void Recv_file(jjjson::usr user)
-{   pthread_t tid;
-    
-    last_choice = "recv_file";
+void Recv_file_fri(jjjson::usr user)
+{
+    pthread_t tid;
+
+    last_choice = "recv_file_fri";
     last_fd = user.fd;
-    last_len=user.id;
+    last_len = user.id;
+
+    string value;
+    json j;
+    string s = user.friendname;
+    s += user.name;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Fri_chat>();
+    tmp.file.push_back(user.filename);
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+
+    db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    j = json::parse(value);
+    auto t = j.get<jjjson::usr>();
+    char buf[4096];
+    sprintf(buf, "%s send a file : %s to you", user.name.c_str(), user.filename.c_str());
+    t.box.push_back(buf);
+    j = t;
+    db->Delete(leveldb::WriteOptions(), user.friendname);
+    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     last_path = path;
     int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -1329,11 +1354,77 @@ void Recv_file(jjjson::usr user)
     close(fd);
 }
 
+void Send_file_fri(jjjson::usr user)
+{
+    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    int fd;
+    if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+    {
+        cout << "open error" << endl;
+        return;
+    }
+    int ret = 0;
+    char x[4096];
+    memset(x, 0, 4096);
+    while ((ret = read(fd, x, 4095)) > 0)
+    { // user.buf.clear();
+        cout << "1" << endl;
+        x[ret] = '\0';
+        // user.buf=x;
+        cout << x << endl;
+        cout << ret << endl;
+        cout << strlen(x) << endl;
+        // j=user;
+        // s=j.dump();
+        sleep(0.01);
+        send(user.fd, x, ret, 0);
+        memset(x, 0, 4096);
+        // sleep(1);
+        if (ret != 4095)
+        {
+            cout << "q!" << endl;
+            sleep(1);
+            char buf[5] = "over";
+            send(user.fd, buf, sizeof(buf), 0);
+            break;
+        }
+        // user.buf.clear();
+    }
+    // sleep(1);
+    // char buf[5]="over";
+    // send(cfd,buf,4,0);
+    // sleep(1);
+    string value;
+    json j;
+    string s = user.name;
+    s += user.friendname;
+    // cout<<"my"<<user.name<<endl;
+    // cout<<"friend"<<user.friendname<<endl;
+    // cout<<"this"<<s<<endl;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Fri_chat>();
+    for (auto it = tmp.file.begin(); it != tmp.file.end(); it++)
+    {
+        if (*it == user.filename)
+        {
+            tmp.file.erase(it);
+            break;
+        }
+    }
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+    cout << "good" << endl;
+
+    close(fd);
+}
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
     cout << last_choice << endl;
-    if (last_choice == "recv_file")
+    if (last_choice == "recv_file_fri")
     {
         return NULL;
     }
@@ -1354,7 +1445,7 @@ void *task(void *arg)
         jjjson::usr user = t.get<jjjson::usr>();
         user.fd = tmpfd;
         jjjson::usr tmp = user;
-        // cout << user.mes_fri << endl;
+        cout << user.mes_fri << endl;
         if (tmp.choice.compare("sign") == 0)
         {
             Sign(user);
@@ -1596,9 +1687,36 @@ void *task(void *arg)
         {
             Check_group_history(user);
         }
-        else if (tmp.choice.compare("recv_file") == 0)
+        else if (tmp.choice.compare("recv_file_fri") == 0)
         {
-            Recv_file(user);
+            json j;
+            string value;
+            string s;
+            char buf[1024];
+            db->Get(leveldb::ReadOptions(), user.friendname, &value);
+            j = json::parse(value);
+            auto tmp = j.get<jjjson::usr>();
+            sprintf(buf, "%s send a file: %s to you ", user.name.c_str(), user.filename.c_str());
+            tmp.box.push_back(buf);
+            j = tmp;
+            db->Delete(leveldb::WriteOptions(), user.friendname);
+            db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+
+            Recv_file_fri(user);
+        }
+        else if (tmp.choice.compare("send_file_fri") == 0)
+        {
+            Send_file_fri(user);
+        }
+        else if (tmp.choice.compare("check_file") == 0)
+        {
+            string s;
+            string value;
+            json j;
+            s = user.name;
+            s += user.friendname;
+            db->Get(leveldb::ReadOptions(), s, &value);
+            send(user.fd, value.c_str(), value.size(), 0);
         }
     }
     return NULL;
