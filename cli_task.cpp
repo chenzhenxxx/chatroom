@@ -31,6 +31,7 @@ void sign_up()
   cin >> user.answer;
   user.status = 0;
   user.id = 0;
+  user.buf.clear();
   user.friendid = 0;
   json j;
   j = user;
@@ -452,6 +453,67 @@ void Shield_fri(jjjson::usr user)
   }
 }
 
+
+
+void send_file(jjjson::usr user)
+{ string path;
+  cout<<"请输入文件地址"<<endl;
+  cin>>path;
+  cout<<"请输保存文件名"<<endl;
+  cin>>user.filename;
+   int fd;
+   if((fd = open(path.c_str(), O_RDONLY))<0)
+   {
+    cout<<"open error"<<endl;
+    return;
+   }
+   json j;string s;
+   int ret=0;
+   user.choice="recv_file";
+   struct stat st;
+   stat(path.c_str(),&st);
+   user.id=st.st_size;
+   j=user;
+   s=j.dump();
+   send(cfd,s.c_str(),s.size(),0);
+
+   char x[4096];
+   memset(x,0,4096);
+   while((ret=read(fd,x,4095))>0)
+   {  //user.buf.clear();
+      cout<<"1"<<endl;
+      x[ret]='\0';
+      //user.buf=x;
+      cout<<x<<endl;
+      cout<<ret<<endl;
+      cout<<strlen(x)<<endl;
+      //j=user;
+      //s=j.dump();
+      sleep(0.01);
+      send(cfd,x,ret,0);
+      memset(x,0,4096);
+       //sleep(1);
+      if(ret!=4095)
+      {sleep(1);
+      char buf[5]="over";
+      send(cfd,buf,sizeof(buf),0);
+      break;
+      }
+      //user.buf.clear();
+
+
+   }
+   //sleep(1);
+   //char buf[5]="over";
+   //send(cfd,buf,4,0);
+   //sleep(1);
+   close(fd);
+
+  
+
+
+}
+
 void Friend(jjjson::usr user)
 {
   while (1)
@@ -496,7 +558,9 @@ void Friend(jjjson::usr user)
     printf("  ***********           3.私聊               ***********  \n");
     printf(" ***********            4.屏蔽好友(开启/取消)             **********  \n");
     printf("***********             5.处理好友申请           **********  \n");
-    printf("***********             6.退出                    **********  \n");
+    printf("***********             6.发送文件          **********  \n");
+    printf("***********             7.接受文件           **********  \n");
+    printf("***********             8.退出                    **********  \n");
     int select;
     cin >> select;
     switch (select)
@@ -516,8 +580,11 @@ void Friend(jjjson::usr user)
     case 5:
       deal_req(user);
       break;
+    case 6 :
+      send_file(user);
+      break;
     }
-    if (select == 6)
+    if (select == 8)
     {
       return;
     }

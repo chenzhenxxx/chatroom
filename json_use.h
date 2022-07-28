@@ -22,7 +22,7 @@
 #include <arpa/inet.h>
 #include <nlohmann/json.hpp> //引入json.hpp，该文件已经放在系统默认路径：/usr/local/include/nlohmann/json.hpp
 #include<leveldb/db.h>
-
+#include<sys/sendfile.h>
 #define NONE "\033[m"
 #define RED "\033[0;32;31m"
 #define LIGHT_RED "\033[1;31m"
@@ -54,7 +54,7 @@ using json = nlohmann::json;
 int tmpfd;
 int epollfd;
 pthread_t tid;
-//pthread_mutex_t mutexx;
+pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr
@@ -74,6 +74,8 @@ namespace jjjson
         time_t time;
         string group;
         vector<string> box;
+        string buf;
+        string filename;
     };
     
     class Friend
@@ -124,7 +126,7 @@ namespace jjjson
 
     void to_json(json &j, const usr &p)
     {
-        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box},{"time",p.time},{"mes_fri",p.mes_fri},{"group",p.group}};
+        j = json{{"friendname",p.friendname},{"friendid",p.friendid},{"id",p.id}, {"fd", p.fd},{"name", p.name},{"pwd",p.pwd},{"status",p.status},{"question",p.question},{"answer",p.answer},{"choice",p.choice},{"box",p.box},{"time",p.time},{"mes_fri",p.mes_fri},{"group",p.group},{"buf",p.buf},{"filename",p.filename}};
     }
     void from_json(const json &j, usr &p)
     {
@@ -142,6 +144,8 @@ namespace jjjson
         j.at("mes_fri").get_to(p.mes_fri);
         j.at("time").get_to(p.time);
         j.at("group").get_to(p.group);
+        j.at("buf").get_to(p.buf);
+        j.at("filename").get_to(p.filename);
     }
     void to_json(json &j,const Friend &p)
     {

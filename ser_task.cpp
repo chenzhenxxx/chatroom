@@ -1,4 +1,3 @@
-
 #include "json_use.h"
 #include <iostream>
 #include <memory>
@@ -17,6 +16,10 @@
 #define PORT 10000
 #define MAXLEN 4096
 using namespace std;
+string last_choice;
+string last_path;
+int last_fd;
+long long last_len;
 void Disband_group(jjjson::usr user);
 void Sign(jjjson::usr user)
 {
@@ -76,6 +79,7 @@ void Login(jjjson::usr user)
         if (user.pwd == tmp.pwd) //成功
         {
             f[0] = '1';
+            user.buf.clear();
             tmp.status = 1;
             tmp.fd = tmpfd;
             j = tmp;
@@ -192,7 +196,8 @@ void Logout(jjjson::usr user)
         q = json::parse(vl);
         auto k = q.get<jjjson::Group>();
         if (k.owner == user.name) //注销的人是群主
-        {   user.group=*it;
+        {
+            user.group = *it;
             Disband_group(user);
             continue;
         }
@@ -213,10 +218,10 @@ void Logout(jjjson::usr user)
             }
         }
         q = k;
-        db->Delete(leveldb::WriteOptions(), y);   //改群信息表
+        db->Delete(leveldb::WriteOptions(), y); //改群信息表
         db->Put(leveldb::WriteOptions(), y, q.dump());
 
-        s = "group_chat";  //删我和群的聊天表
+        s = "group_chat"; //删我和群的聊天表
         s += *it;
         s += user.name;
         db->Delete(leveldb::WriteOptions(), s);
@@ -1277,13 +1282,66 @@ void Check_group_history(jjjson::usr user)
     send(user.fd, value.c_str(), value.size(), 0);
 }
 
+void *R_file(void *arg)
+{   pthread_detach(pthread_self());
+    char buf[4096];
+    long long tmplen=0;
+    int ret;
+    memset(buf, 0, 4096);
+    cout << last_path << endl;
+    int fd = open(last_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    while (1)
+    {
+
+        ret = recv(last_fd, buf, 4095, 0);
+        //cout << buf << endl;
+        if(strcmp(buf,"over")==0)
+        {  cout<<"over"<<endl;
+           last_choice="ll";
+            break;
+        }
+        
+        // if(ret<4096)
+        // buf[ret]='\0';
+        write(fd, buf, ret);
+        
+        
+
+        // memset(buf,0,4096);
+    }
+    close(fd);
+    return NULL;
+}
+
+void Recv_file(jjjson::usr user)
+{   pthread_t tid;
+    
+    last_choice = "recv_file";
+    last_fd = user.fd;
+    last_len=user.id;
+    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    last_path = path;
+    int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    // cout<<user.buf<<endl;
+    // cout<<path<<endl;
+    // write(fd,user.buf.c_str(),user.buf.size());
+    pthread_create(&tid, NULL, R_file, NULL);
+    close(fd);
+}
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
-    char buf[4096];
-    memset(buf, 0, 4096);
-    int len = recv(tmpfd, buf, 4096, 0);
-    // cout<<"test"<<buf<<endl;
+    cout << last_choice << endl;
+    if (last_choice == "recv_file")
+    {
+        return NULL;
+    }
+    char buf[10000];
+    memset(buf, 0, 10000);
+    int len = recv(tmpfd, buf, 9999, 0);
+    buf[len] = '\0';
+    cout << "tes;t" << buf << endl;
     if (len == 0)
     {
         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
@@ -1537,6 +1595,10 @@ void *task(void *arg)
         else if (tmp.choice.compare("check_group_history") == 0)
         {
             Check_group_history(user);
+        }
+        else if (tmp.choice.compare("recv_file") == 0)
+        {
+            Recv_file(user);
         }
     }
     return NULL;
