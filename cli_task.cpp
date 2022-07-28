@@ -1127,8 +1127,12 @@ void Check__group_history(jjjson::usr user)
 
 void chat_group(jjjson::usr user)
 {
-
-  cout << "1.开始聊天               2.查看聊天记录             3.输入其他键退出" << endl;
+   
+  cout << "1.开始聊天"<<endl;
+  cout<<"2.查看聊天记录"<<endl;
+  cout<<"3.传文件"<<endl;
+  cout<<"4.收文件"<<endl;
+  cout<<"5.输入其他键退出" << endl;
   string select;
   cin >> select;
   if (select == "1")
@@ -1179,7 +1183,146 @@ void chat_group(jjjson::usr user)
   {
     Check__group_history(user);
   }
+  else if(select=="3")
+  {
+    
+  }
 }
+
+void send_file_gro(jjjson::usr user)
+{
+   string path;
+  cout << "请输入文件地址" << endl;
+  cin >> path;
+  cout << "请输保存文件名" << endl;
+  cin >> user.filename;
+  int fd;
+  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+  {
+    cout << "open error" << endl;
+    return;
+  }
+  json j;
+  string s;
+  int ret = 0;
+  user.choice = "recv_file_gro";
+  struct stat st;
+  stat(path.c_str(), &st);
+  user.id = st.st_size;
+  j = user;
+  s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+
+  char x[4096];
+  memset(x, 0, 4096);
+  while ((ret = read(fd, x, 4095)) > 0)
+  { // user.buf.clear();
+    cout << "1" << endl;
+    x[ret] = '\0';
+    // user.buf=x;
+    cout << x << endl;
+    cout << ret << endl;
+    cout << strlen(x) << endl;
+    // j=user;
+    // s=j.dump();
+    sleep(0.01);
+    send(cfd, x, ret, 0);
+    memset(x, 0, 4096);
+    // sleep(1);
+    if (ret != 4095)
+    {
+      sleep(1);
+      char buf[5] = "over";
+      send(cfd, buf, sizeof(buf), 0);
+      break;
+    }
+    // user.buf.clear();
+  }
+  // sleep(1);
+  // char buf[5]="over";
+  // send(cfd,buf,4,0);
+  // sleep(1);
+  close(fd);
+}
+
+void recv_file_gro(jjjson::usr user)
+{
+  while (1)
+  {
+    int fd;
+    json j;
+    string s;
+    int flag = 0;
+    user.choice = "check_file_gro";
+    char buf[4096];
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    recv(cfd, buf, 4096, 0);
+    string t(buf);
+    j = json::parse(t);
+    auto x = j.get<jjjson::Gro_chat>();
+    for (auto it = x.filename.begin(); it != x.filename.end(); it++)
+    {
+      cout << "*******" << *it << endl;
+    }
+    cout << "请选择操作对象(输入0退出)" << endl;
+    string q;
+    cin >> q;
+    if(q=="0")
+    break;
+    for (auto it = x.filename.begin(); it != x.filename.end(); it++)
+    {
+      if (q == *it)
+      {
+        flag = 1;
+      }
+    }
+    if (flag == 0)
+    {
+      cout << "请选择正确的对象" << endl;
+      continue;
+    }
+    cout << "请选择保存路径" << endl;
+    string path;
+    cin >> path;
+    path += "/";
+    path += q;
+    cout << path << endl;
+    if ((fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666)) < 0)
+    {
+      cout << "create file error" << endl;
+      continue;
+    }
+    user.filename = q;
+    user.choice = "send_file_gro";
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+
+    int ret = 0;
+    memset(buf, 0, 4096);
+    while (1)
+    {
+
+      ret = recv(cfd, buf, 4095, 0);
+      // cout << buf << endl;
+      if (strcmp(buf, "over") == 0)
+      {
+        cout << "over" << endl;
+        break;
+      }
+
+      // if(ret<4096)
+      // buf[ret]='\0';
+      write(fd, buf, ret);
+
+      memset(buf, 0, 4096);
+    }
+    close(fd);
+  }
+}
+
 
 void Enter_group(jjjson::usr user)
 {
@@ -1213,7 +1356,9 @@ void Enter_group(jjjson::usr user)
     printf(" ***********            4.退出群聊          **********  \n");
     printf(" ***********            5.处理群请求             **********  \n");
     printf(" ***********            6.踢人                    **********  \n");
-    printf(" ***********            7. 退出                   **********  \n");
+    printf(" ***********            7.传输文件                    **********  \n");
+    printf(" ***********            8.接受文件                    **********  \n");
+    printf(" ***********            9. 退出                   **********  \n");
     int select;
     cin >> select;
     switch (select)
@@ -1236,8 +1381,13 @@ void Enter_group(jjjson::usr user)
     case 6:
       kick_sb(user);
       break;
+      case 7:
+      send_file_gro(user);
+      break;
+      case 8:
+       recv_file_gro(user);
     }
-    if (select == 7)
+    if (select == 9)
     {
       break;
     }

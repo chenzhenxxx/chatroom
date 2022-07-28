@@ -121,6 +121,7 @@ namespace jjjson
         public:
         vector<string> unread_mes;
         vector<time_t> unread_t;
+        vector<string> filename;
     };
 
 
@@ -204,12 +205,13 @@ namespace jjjson
     }
     void to_json(json &j,const Gro_chat &p)
     {
-        j=json{{"unread_mes",p.unread_mes},{"unread_t",p.unread_t}};
+        j=json{{"unread_mes",p.unread_mes},{"unread_t",p.unread_t},{"filename",p.filename}};
     }
     void from_json(const json &j,Gro_chat &p)
     {
         j.at("unread_mes").get_to(p.unread_mes);
         j.at("unread_t").get_to(p.unread_t);
+        j.at("filename").get_to(p.filename);
     }
 
    

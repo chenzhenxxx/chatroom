@@ -1420,11 +1420,127 @@ void Send_file_fri(jjjson::usr user)
     close(fd);
 }
 
+void Recv_file_gro(jjjson::usr user)
+{   last_choice = "recv_file_gro";
+    last_fd = user.fd;
+    last_len = user.id;
+    json j;
+    string value;
+    string s;
+    char buf[1024];
+    s = "group";
+    s += user.group;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Group>();
+    for (auto it = tmp.member.begin(); it != tmp.member.end(); it++)
+    {
+        if (*it == user.name)
+            continue;
+        db->Get(leveldb::ReadOptions(), *it, &value);
+        j = json::parse(value);
+        auto t = j.get<jjjson::usr>();
+        sprintf(buf, "in group :%s :%s send a file: %s to you ", user.group.c_str(), user.name.c_str(), user.filename.c_str());
+        t.box.push_back(buf);
+        j = t;
+        db->Delete(leveldb::WriteOptions(), *it);
+        db->Put(leveldb::WriteOptions(), *it, j.dump());
+
+        s = "group_chat";
+        s += user.group;
+        s += *it;
+        db->Get(leveldb::ReadOptions(), s, &value);
+        j = json::parse(value);
+        auto y = j.get<jjjson::Gro_chat>();
+        y.filename.push_back(user.filename);
+        j = y;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
+    }
+
+    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    last_path = path;
+    int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    // cout<<user.buf<<endl;
+    // cout<<path<<endl;
+    // write(fd,user.buf.c_str(),user.buf.size());
+    pthread_create(&tid, NULL, R_file, NULL);
+    close(fd);
+}
+
+void Send_file_gro(jjjson :: usr user)
+{
+    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    int fd;
+    if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+    {
+        cout << "open error" << endl;
+        return;
+    }
+    int ret = 0;
+    char x[4096];
+    memset(x, 0, 4096);
+    while ((ret = read(fd, x, 4095)) > 0)
+    { // user.buf.clear();
+        cout << "1" << endl;
+        x[ret] = '\0';
+        // user.buf=x;
+        cout << x << endl;
+        cout << ret << endl;
+        cout << strlen(x) << endl;
+        // j=user;
+        // s=j.dump();
+        sleep(0.01);
+        send(user.fd, x, ret, 0);
+        memset(x, 0, 4096);
+        // sleep(1);
+        if (ret != 4095)
+        {
+            cout << "q!" << endl;
+            sleep(1);
+            char buf[5] = "over";
+            send(user.fd, buf, sizeof(buf), 0);
+            break;
+        }
+        // user.buf.clear();
+    }
+    // sleep(1);
+    // char buf[5]="over";
+    // send(cfd,buf,4,0);
+    // sleep(1);
+    string value;
+    json j;
+    string s = "group_chat";
+    s +=user.group;
+    s+=user.name;
+    // cout<<"my"<<user.name<<endl;
+    // cout<<"friend"<<user.friendname<<endl;
+    // cout<<"this"<<s<<endl;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Gro_chat>();
+    for (auto it = tmp.filename.begin(); it != tmp.filename.end(); it++)
+    {
+        if (*it == user.filename)
+        {
+            tmp.filename.erase(it);
+            break;
+        }
+    }
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+    cout << "good" << endl;
+
+    close(fd);
+}
+
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
     cout << last_choice << endl;
-    if (last_choice == "recv_file_fri")
+    if (last_choice == "recv_file_fri"||last_choice=="recv_file_gro")
     {
         return NULL;
     }
@@ -1718,6 +1834,25 @@ void *task(void *arg)
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
         }
+        else if (tmp.choice.compare("recv_file_gro") == 0)
+        {
+            Recv_file_gro(user);
+        }
+     else if (tmp.choice.compare("check_file_gro") == 0)
+        {
+            string s="group_chat";
+            string value;
+            json j;
+            s+=user.group;
+            s += user.name;
+            db->Get(leveldb::ReadOptions(), s, &value);
+            send(user.fd, value.c_str(), value.size(), 0);
+        }
+        else if (tmp.choice.compare("send_file_gro") == 0)
+        {
+            Send_file_gro(user);
+        }
+        
     }
     return NULL;
 }
