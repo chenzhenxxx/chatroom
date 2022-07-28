@@ -425,6 +425,7 @@ void recv_file_fri(jjjson::usr user)
     if (flag == 0)
     {
       cout << "请选择正确的对象" << endl;
+      continue;
     }
     cout << "请选择保存路径" << endl;
     string path;
@@ -435,6 +436,7 @@ void recv_file_fri(jjjson::usr user)
     if ((fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666)) < 0)
     {
       cout << "create file error" << endl;
+      continue;
     }
     user.filename = q;
     user.choice = "send_file_fri";
