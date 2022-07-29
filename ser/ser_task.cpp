@@ -1295,7 +1295,7 @@ void *R_file(void *arg)
     while (1)
     {
 
-        ret = recv(last_fd, buf, 4095, 0);
+        ret = recv(last_fd, buf, 4095, MSG_WAITALL);
         // cout << buf << endl;
         if (strcmp(buf, "over") == 0)
         {
@@ -1348,11 +1348,11 @@ void Recv_file_fri(jjjson::usr user)
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     last_path = path;
     int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    close(fd);
     // cout<<user.buf<<endl;
     // cout<<path<<endl;
     // write(fd,user.buf.c_str(),user.buf.size());
     pthread_create(&tid, NULL, R_file, NULL);
-    close(fd);
 }
 
 void Send_file_fri(jjjson::usr user)
@@ -1360,7 +1360,7 @@ void Send_file_fri(jjjson::usr user)
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     int fd;
     if ((fd = open(path.c_str(), O_RDONLY)) < 0)
-    {
+    {   close(fd);
         cout << "open error" << endl;
         return;
     }
@@ -1384,7 +1384,7 @@ void Send_file_fri(jjjson::usr user)
         if (ret != 4095)
         {
             cout << "q!" << endl;
-            sleep(1);
+            //sleep(1);
             char buf[5] = "over";
             send(user.fd, buf, sizeof(buf), 0);
             break;
@@ -1462,11 +1462,11 @@ void Recv_file_gro(jjjson::usr user)
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     last_path = path;
     int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+     close(fd);
     // cout<<user.buf<<endl;
     // cout<<path<<endl;
     // write(fd,user.buf.c_str(),user.buf.size());
     pthread_create(&tid, NULL, R_file, NULL);
-    close(fd);
 }
 
 void Send_file_gro(jjjson :: usr user)
@@ -1474,7 +1474,7 @@ void Send_file_gro(jjjson :: usr user)
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     int fd;
     if ((fd = open(path.c_str(), O_RDONLY)) < 0)
-    {
+    {   close(fd);
         cout << "open error" << endl;
         return;
     }
@@ -1537,6 +1537,26 @@ void Send_file_gro(jjjson :: usr user)
 }
 
 
+void *Inform(void *arg)
+{   pthread_detach(pthread_self());
+    jjjson::usr user=*(jjjson::usr *)arg;
+    while(1)
+    {       sleep(1);
+            string value;
+            auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
+            json j = json::parse(value);
+            auto tmp = j.get<jjjson::usr>();
+            if(tmp.box.size()!=0&&!tmp.box.empty())
+            {
+            send(user.fd, value.c_str(), value.size(), 0);
+            tmp.box.clear();
+            j = tmp;
+            db->Delete(leveldb::WriteOptions(), user.name);
+            db->Put(leveldb::WriteOptions(), user.name, j.dump());
+            }
+    }
+}
+
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
@@ -1547,13 +1567,13 @@ void *task(void *arg)
     }
     char buf[10000];
     memset(buf, 0, 10000);
-    int len = recv(tmpfd, buf, 9999, 0);
+    int len = recv(tmpfd, buf, 9999, MSG_WAITALL);
     buf[len] = '\0';
     cout << "tes;t" << buf << endl;
-    if (len == 0)
-    {
-        epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-        close(tmpfd);
+     if (len == 0)
+     {
+         //epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+         //close(tmpfd);
     }
     else
     {
@@ -1641,16 +1661,9 @@ void *task(void *arg)
             send(user.fd, f, 1, 0);
         }
         else if (tmp.choice.compare("inform") == 0)
-        {
-            string value;
-            auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
-            send(user.fd, value.c_str(), value.size(), 0);
-            json j = json::parse(value);
-            auto tmp = j.get<jjjson::usr>();
-            tmp.box.clear();
-            j = tmp;
-            db->Delete(leveldb::WriteOptions(), user.name);
-            db->Put(leveldb::WriteOptions(), user.name, j.dump());
+        {  pthread_t ttid;
+            pthread_create(&ttid,NULL,Inform,(void *)&user);
+            
         }
 
         else if (tmp.choice.compare("delete_friend") == 0)
