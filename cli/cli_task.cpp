@@ -1,5 +1,27 @@
 #include "json_use.h"
 int cfd;
+
+void Inform(jjjson::usr user)
+{
+  char buf[4096];
+  memset(buf, 0, 4096);
+  user.choice = "inform";
+  json j = user;
+  string s = j.dump();
+  send(cfd, s.c_str(), s.size(), 0);
+  recv(cfd, buf, 4096, 0);
+  string tmp(buf);
+  j = json::parse(tmp);
+  auto uu = j.get<jjjson::usr>();
+  if(uu.box.size()!=0)
+  { cout<<uu.box.size()<<endl;
+    cout << "*********I N F O R M" << endl;
+  }
+  for (auto it = uu.box.begin(); it != uu.box.end(); it++)
+  {
+    cout << *it << endl;
+  }
+}
 void Check(jjjson::usr user)
 {
   char f[1];
@@ -38,6 +60,7 @@ void sign_up()
   j = user;
   string ifo = j.dump();
   char buf[1];
+  memset(buf,0,1);
   send(cfd, ifo.c_str(), ifo.size(), 0);
   read(cfd, buf, 1);
   if (strcmp(buf, "1") == 0)
@@ -54,7 +77,7 @@ void sign_up()
 void settings(jjjson::usr user)
 {
   while (1)
-  {
+  { Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.昵称              **********  \n");
     printf("   ***********          2.密码               **********  \n");
@@ -90,6 +113,7 @@ void settings(jjjson::usr user)
       j = user;
       string ifo = j.dump();
       char buf[1];
+      memset(buf,0,1);
       send(cfd, ifo.c_str(), ifo.size(), 0);
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
@@ -118,6 +142,7 @@ void Find_pwd()
   char buf[4096];
   j = user;
   s = j.dump();
+  memset(buf,0,4096);
   send(cfd, s.c_str(), s.size(), 0);
   recv(cfd, f, 1, 0);
   if (f[0] == '0')
@@ -316,6 +341,7 @@ void *recv_chat(jjjson::usr arg)
 void Check_history(jjjson::usr user)
 {
   char buf[10000];
+  memset(buf,0,10000);
   user.choice = "check_history";
   json j = user;
   string s = j.dump();
@@ -402,6 +428,7 @@ void recv_file_fri(jjjson::usr user)
     char buf[4096];
     j = user;
     s = j.dump();
+    memset(buf,0,4096);
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
     string t(buf);
@@ -661,6 +688,7 @@ void Friend(jjjson::usr user)
 {
   while (1)
   { //system("clear");
+    Inform(user);
     cout << "************friend" << endl;
     user.choice = "look_friend";
 
@@ -1255,6 +1283,7 @@ void recv_file_gro(jjjson::usr user)
     char buf[4096];
     j = user;
     s = j.dump();
+    memset(buf,0,4096);
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
     string t(buf);
@@ -1347,7 +1376,7 @@ void Enter_group(jjjson::usr user)
   }
   while (1)
   {
-    
+    Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.查看群成员列表          **********  \n");
     printf("   ***********          2.设置/取消管理员       **********  \n");
@@ -1431,7 +1460,7 @@ void disband_group(jjjson::usr user)
 void Group(jjjson::usr user)
 {
   while (1)
-  { 
+  { Inform(user);
     char buf[4096];
     memset(buf, 0, 4096);
     string s;
@@ -1494,24 +1523,7 @@ void Group(jjjson::usr user)
   system("clear");
 }
 
-void Inform(jjjson::usr user)
-{
-  cout << "*********I N F O R M" << endl;
-  char buf[4096];
-  memset(buf, 0, 4096);
-  user.choice = "inform";
-  json j = user;
-  string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 4096, 0);
-  string tmp(buf);
-  j = json::parse(tmp);
-  auto uu = j.get<jjjson::usr>();
-  for (auto it = uu.box.begin(); it != uu.box.end(); it++)
-  {
-    cout << *it << endl;
-  }
-}
+
 
 int Logout(jjjson::usr user)
 {
@@ -1531,7 +1543,8 @@ int menu(jjjson::usr user)
 {
   while (1)
   {  
-    Check(user);
+    //Check(user);
+    Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
     printf("   ***********          2.好友               **********  \n");
