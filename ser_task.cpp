@@ -80,6 +80,7 @@ void Login(jjjson::usr user)
         {
             f[0] = '1';
             user.buf.clear();
+            user.time=0;
             tmp.status = 1;
             tmp.fd = tmpfd;
             j = tmp;

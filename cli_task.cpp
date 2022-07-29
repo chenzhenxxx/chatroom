@@ -31,6 +31,7 @@ void sign_up()
   cin >> user.answer;
   user.status = 0;
   user.id = 0;
+  user.time=0;
   user.buf.clear();
   user.friendid = 0;
   json j;
@@ -128,8 +129,8 @@ void Find_pwd()
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
-
   recv(cfd, buf, 4096, 0);
+
   j = json::parse(buf);
   auto tmp = j.get<jjjson::usr>();
   cout << "Question:" << tmp.question << endl;
@@ -659,7 +660,7 @@ void send_file(jjjson::usr user)
 void Friend(jjjson::usr user)
 {
   while (1)
-  {
+  { //system("clear");
     cout << "************friend" << endl;
     user.choice = "look_friend";
 
@@ -727,7 +728,7 @@ void Friend(jjjson::usr user)
       // break;
     }
     if (select == 6)
-    {
+    { system("clear");
       return;
     }
   }
@@ -1130,9 +1131,9 @@ void chat_group(jjjson::usr user)
    
   cout << "1.开始聊天"<<endl;
   cout<<"2.查看聊天记录"<<endl;
-  cout<<"3.传文件"<<endl;
-  cout<<"4.收文件"<<endl;
-  cout<<"5.输入其他键退出" << endl;
+  //cout<<"3.传文件"<<endl;
+  //cout<<"4.收文件"<<endl;
+  cout<<"3.输入其他键退出" << endl;
   string select;
   cin >> select;
   if (select == "1")
@@ -1183,10 +1184,7 @@ void chat_group(jjjson::usr user)
   {
     Check__group_history(user);
   }
-  else if(select=="3")
-  {
-    
-  }
+ 
 }
 
 void send_file_gro(jjjson::usr user)
@@ -1260,6 +1258,7 @@ void recv_file_gro(jjjson::usr user)
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
     string t(buf);
+    cout<<t<<endl;
     j = json::parse(t);
     auto x = j.get<jjjson::Gro_chat>();
     for (auto it = x.filename.begin(); it != x.filename.end(); it++)
@@ -1348,7 +1347,7 @@ void Enter_group(jjjson::usr user)
   }
   while (1)
   {
-
+    
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.查看群成员列表          **********  \n");
     printf("   ***********          2.设置/取消管理员       **********  \n");
@@ -1392,6 +1391,7 @@ void Enter_group(jjjson::usr user)
       break;
     }
   }
+  system("clear");
 }
 
 void disband_group(jjjson::usr user)
@@ -1431,7 +1431,7 @@ void disband_group(jjjson::usr user)
 void Group(jjjson::usr user)
 {
   while (1)
-  {
+  { 
     char buf[4096];
     memset(buf, 0, 4096);
     string s;
@@ -1491,6 +1491,7 @@ void Group(jjjson::usr user)
       break;
     }
   }
+  system("clear");
 }
 
 void Inform(jjjson::usr user)
@@ -1529,7 +1530,7 @@ int Logout(jjjson::usr user)
 int menu(jjjson::usr user)
 {
   while (1)
-  {
+  {  
     Check(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
@@ -1578,7 +1579,9 @@ int menu(jjjson::usr user)
       {
         cout << "退出成功！\n";
       }
+      system("clear");
       return -1;
+
       break;
     }
   }
@@ -1632,7 +1635,7 @@ void login()
 int login_menu()
 {
   while (1)
-  {
+  { 
     int select;
     cout << "/*************************************************/" << endl;
     cout << "/*  ____   _                  ____ _           _    */" << endl;
@@ -1663,6 +1666,7 @@ int login_menu()
       break;
     }
   }
+  system("clear");
 
   return 1;
 }
