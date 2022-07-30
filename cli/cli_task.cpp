@@ -314,11 +314,11 @@ void Delete_friend(jjjson::usr user)
 
 void *recv_chat(jjjson::usr arg)
 { // pthread_detach(pthread_self());
-  jjjson::usr tmp = arg;
-  tmp.choice = "recv_mes";
-  json j = tmp;
-  string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
+   jjjson::usr tmp = arg;
+  // tmp.choice = "recv_mes";
+   json j = tmp;
+  //string s = j.dump();
+  // send(cfd, s.c_str(), s.size(), 0);
   while (1)
   {
 
@@ -552,7 +552,14 @@ void Chat_sb(jjjson::usr user)
   int select;
   cin >> select;
   if (select == 1)
-  {
+  { json c;string h;
+    user.choice="chat_sb";  //唤醒
+    user.mes_fri="";
+    c=user;
+    h=c.dump();
+    send(cfd,h.c_str(),h.size(),0);
+
+
     pthread_t tid;
     thread recvv(recv_chat, user);
 
@@ -568,7 +575,7 @@ void Chat_sb(jjjson::usr user)
       user.time = t;
       if (s == "quit")
       {
-        user.choice = "quit_chatfri";
+        // user.choice = "quit_chatfri";
         json j = user;
         string l = j.dump();
         send(cfd, l.c_str(), l.size(), 0);
