@@ -579,6 +579,20 @@ void Chat_sb(jjjson::usr user)
     j = t;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
+
+    db->Get(leveldb::ReadOptions(),user.friendname,&value);
+    j=json::parse(value);
+    auto i=j.get<jjjson::usr>();
+    if(i.friendname!=user.name||i.choice!="chat_sb")
+    {   char buf[1000];
+        sprintf(buf,"%s say to you : %s",user.name.c_str(),user.mes_fri.c_str());
+        string t(buf);
+        i.box.push_back(t);
+        j=i;
+        db->Delete(leveldb::WriteOptions(),user.friendname);
+        db->Put(leveldb::WriteOptions(),user.friendname,j.dump());
+
+    }
 }
 
 void *Recv_mes(void *arg)
@@ -605,7 +619,7 @@ void *Recv_mes(void *arg)
             break;
         }
 
-        printf("000\n");
+        //printf("000\n");
         db->Get(leveldb::ReadOptions(), s, &value);
         json j = json::parse(value);
         string t = j.dump();
@@ -1252,6 +1266,18 @@ void Chat_group(jjjson::usr user)
             db->Delete(leveldb::WriteOptions(), ss);
             db->Put(leveldb::WriteOptions(), ss, j.dump());
         }
+        else
+        {
+            db->Get(leveldb::ReadOptions(),*it,&value);
+            j=json::parse(value);
+            auto c=j.get<jjjson::usr>();
+            char buf[1000];
+            sprintf(buf,"%s send a message from group:%s : %s",user.name.c_str(),user.group.c_str(),user.mes_fri.c_str());
+            c.box.push_back(buf);
+            j=c;
+            db->Delete(leveldb::WriteOptions(),*it);
+            db->Put(leveldb::WriteOptions(),*it,j.dump());
+        }
     }
 }
 
@@ -1537,30 +1563,30 @@ void Send_file_gro(jjjson :: usr user)
 }
 
 
-void *Inform(void *arg)
-{   pthread_detach(pthread_self());
-    jjjson::usr user=*(jjjson::usr *)arg;
-    while(1)
-    {       sleep(1);
+void *Inform(jjjson::usr user)
+{   //pthread_detach(pthread_self());
+    //jjjson::usr user=*(jjjson::usr *)arg;
+    //while(1)
+    //{     
             string value;
             auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
             json j = json::parse(value);
             auto tmp = j.get<jjjson::usr>();
-            if(tmp.box.size()!=0&&!tmp.box.empty())
-            {
+            //if(tmp.box.size()!=0&&!tmp.box.empty())
+           // {
             send(user.fd, value.c_str(), value.size(), 0);
             tmp.box.clear();
             j = tmp;
             db->Delete(leveldb::WriteOptions(), user.name);
             db->Put(leveldb::WriteOptions(), user.name, j.dump());
-            }
-    }
+            //}
+   // }
 }
 
 void *task(void *arg)
 {
     pthread_detach(pthread_self());
-    cout << last_choice << endl;
+    //cout << last_choice << endl;
     if (last_choice == "recv_file_fri"||last_choice=="recv_file_gro")
     {
         return NULL;
@@ -1569,7 +1595,7 @@ void *task(void *arg)
     memset(buf, 0, 10000);
     int len = recv(tmpfd, buf, 9999, MSG_WAITALL);
     buf[len] = '\0';
-    cout << "tes;t" << buf << endl;
+    //cout << "tes;t" << buf << endl;
      if (len == 0)
      {
          //epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
@@ -1582,7 +1608,7 @@ void *task(void *arg)
         jjjson::usr user = t.get<jjjson::usr>();
         user.fd = tmpfd;
         jjjson::usr tmp = user;
-        cout << user.mes_fri << endl;
+        //cout << user.mes_fri << endl;
         if (tmp.choice.compare("sign") == 0)
         {
             Sign(user);
@@ -1661,8 +1687,9 @@ void *task(void *arg)
             send(user.fd, f, 1, 0);
         }
         else if (tmp.choice.compare("inform") == 0)
-        {  pthread_t ttid;
-            pthread_create(&ttid,NULL,Inform,(void *)&user);
+        {  //pthread_t ttid;
+            //pthread_create(&ttid,NULL,Inform,(void *)&user);
+            Inform(user);
             
         }
 

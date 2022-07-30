@@ -1,25 +1,36 @@
 #include "json_use.h"
 int cfd;
 
-void Inform(jjjson::usr user)
-{
-  char buf[4096];
-  memset(buf, 0, 4096);
-  user.choice = "inform";
-  json j = user;
-  string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 4096, 0);
-  string tmp(buf);
-  j = json::parse(tmp);
-  auto uu = j.get<jjjson::usr>();
-  if(uu.box.size()!=0)
-  { cout<<uu.box.size()<<endl;
-    cout << "*********I N F O R M" << endl;
-  }
-  for (auto it = uu.box.begin(); it != uu.box.end(); it++)
-  {
-    cout << *it << endl;
+void *Inform(void *arg)
+{ pthread_detach(pthread_self());
+  jjjson ::usr u=*(jjjson::usr *)arg;
+  while (1)
+  { //sleep(2);
+
+    u.choice="inform";
+    json j=u;
+    string s=j.dump();
+    send(u.fd,s.c_str(),s.size(),0);
+    char buf[4096];
+    memset(buf, 0, 4096);
+    recv(u.fd, buf, 4096, 0);
+    //if(strlen(buf)==0)
+    //continue;
+    string tmp(buf);
+
+    j = json::parse(tmp);
+    auto uu = j.get<jjjson::usr>();
+    if (uu.box.size() != 0)
+    {
+      cout << uu.box.size() << endl;
+      cout << "*********I N F O R M" << endl;
+    for (auto it = uu.box.begin(); it != uu.box.end(); it++)
+    {
+      cout << *it << endl;
+    }
+    uu.box.clear();
+    }
+    
   }
 }
 void Check(jjjson::usr user)
@@ -53,14 +64,14 @@ void sign_up()
   cin >> user.answer;
   user.status = 0;
   user.id = 0;
-  user.time=0;
+  user.time = 0;
   user.buf.clear();
   user.friendid = 0;
   json j;
   j = user;
   string ifo = j.dump();
   char buf[1];
-  memset(buf,0,1);
+  memset(buf, 0, 1);
   send(cfd, ifo.c_str(), ifo.size(), 0);
   read(cfd, buf, 1);
   if (strcmp(buf, "1") == 0)
@@ -77,7 +88,8 @@ void sign_up()
 void settings(jjjson::usr user)
 {
   while (1)
-  { Inform(user);
+  {
+    //Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.昵称              **********  \n");
     printf("   ***********          2.密码               **********  \n");
@@ -113,7 +125,7 @@ void settings(jjjson::usr user)
       j = user;
       string ifo = j.dump();
       char buf[1];
-      memset(buf,0,1);
+      memset(buf, 0, 1);
       send(cfd, ifo.c_str(), ifo.size(), 0);
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
@@ -142,7 +154,7 @@ void Find_pwd()
   char buf[4096];
   j = user;
   s = j.dump();
-  memset(buf,0,4096);
+  memset(buf, 0, 4096);
   send(cfd, s.c_str(), s.size(), 0);
   recv(cfd, f, 1, 0);
   if (f[0] == '0')
@@ -341,7 +353,7 @@ void *recv_chat(jjjson::usr arg)
 void Check_history(jjjson::usr user)
 {
   char buf[10000];
-  memset(buf,0,10000);
+  memset(buf, 0, 10000);
   user.choice = "check_history";
   json j = user;
   string s = j.dump();
@@ -428,7 +440,7 @@ void recv_file_fri(jjjson::usr user)
     char buf[4096];
     j = user;
     s = j.dump();
-    memset(buf,0,4096);
+    memset(buf, 0, 4096);
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
     string t(buf);
@@ -441,8 +453,8 @@ void recv_file_fri(jjjson::usr user)
     cout << "请选择操作对象(输入0退出)" << endl;
     string q;
     cin >> q;
-    if(q=="0")
-    break;
+    if (q == "0")
+      break;
     for (auto it = x.file.begin(); it != x.file.end(); it++)
     {
       if (q == *it)
@@ -687,8 +699,8 @@ void send_file(jjjson::usr user)
 void Friend(jjjson::usr user)
 {
   while (1)
-  { //system("clear");
-    Inform(user);
+  { // system("clear");
+    //Inform(user);
     cout << "************friend" << endl;
     user.choice = "look_friend";
 
@@ -756,7 +768,8 @@ void Friend(jjjson::usr user)
       // break;
     }
     if (select == 6)
-    { system("clear");
+    {
+      system("clear");
       return;
     }
   }
@@ -1156,24 +1169,21 @@ void Check__group_history(jjjson::usr user)
 
 void chat_group(jjjson::usr user)
 {
-   
-  cout << "1.开始聊天"<<endl;
-  cout<<"2.查看聊天记录"<<endl;
-  //cout<<"3.传文件"<<endl;
-  //cout<<"4.收文件"<<endl;
-  cout<<"3.输入其他键退出" << endl;
+
+  cout << "1.开始聊天" << endl;
+  cout << "2.查看聊天记录" << endl;
+  // cout<<"3.传文件"<<endl;
+  // cout<<"4.收文件"<<endl;
+  cout << "3.输入其他键退出" << endl;
   string select;
   cin >> select;
   if (select == "1")
-  {
+  { pthread_t tid;
+    thread recvv(recv_chat_group, user);
     user.choice = "offline_mes_gro"; //获取离线消息
     json k = user;
     string l = k.dump();
     send(cfd, l.c_str(), l.size(), 0);
-
-    pthread_t tid;
-    thread recvv(recv_chat_group, user);
-
     user.choice = "chat_group"; //先唤醒聊天状态
     user.mes_fri = "";
     json j = user;
@@ -1212,12 +1222,11 @@ void chat_group(jjjson::usr user)
   {
     Check__group_history(user);
   }
- 
 }
 
 void send_file_gro(jjjson::usr user)
 {
-   string path;
+  string path;
   cout << "请输入文件地址" << endl;
   cin >> path;
   cout << "请输保存文件名" << endl;
@@ -1283,11 +1292,11 @@ void recv_file_gro(jjjson::usr user)
     char buf[4096];
     j = user;
     s = j.dump();
-    memset(buf,0,4096);
+    memset(buf, 0, 4096);
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
     string t(buf);
-    cout<<t<<endl;
+    cout << t << endl;
     j = json::parse(t);
     auto x = j.get<jjjson::Gro_chat>();
     for (auto it = x.filename.begin(); it != x.filename.end(); it++)
@@ -1297,8 +1306,8 @@ void recv_file_gro(jjjson::usr user)
     cout << "请选择操作对象(输入0退出)" << endl;
     string q;
     cin >> q;
-    if(q=="0")
-    break;
+    if (q == "0")
+      break;
     for (auto it = x.filename.begin(); it != x.filename.end(); it++)
     {
       if (q == *it)
@@ -1333,7 +1342,7 @@ void recv_file_gro(jjjson::usr user)
     while (1)
     {
 
-      ret = recv(cfd, buf, 4095, 0);
+      ret = recv(cfd, buf, 4095, MSG_WAITALL);
       // cout << buf << endl;
       if (strcmp(buf, "over") == 0)
       {
@@ -1350,7 +1359,6 @@ void recv_file_gro(jjjson::usr user)
     close(fd);
   }
 }
-
 
 void Enter_group(jjjson::usr user)
 {
@@ -1376,7 +1384,7 @@ void Enter_group(jjjson::usr user)
   }
   while (1)
   {
-    Inform(user);
+    //Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.查看群成员列表          **********  \n");
     printf("   ***********          2.设置/取消管理员       **********  \n");
@@ -1409,11 +1417,11 @@ void Enter_group(jjjson::usr user)
     case 6:
       kick_sb(user);
       break;
-      case 7:
+    case 7:
       send_file_gro(user);
       break;
-      case 8:
-       recv_file_gro(user);
+    case 8:
+      recv_file_gro(user);
     }
     if (select == 9)
     {
@@ -1460,7 +1468,8 @@ void disband_group(jjjson::usr user)
 void Group(jjjson::usr user)
 {
   while (1)
-  { Inform(user);
+  {
+    //Inform(user);
     char buf[4096];
     memset(buf, 0, 4096);
     string s;
@@ -1523,8 +1532,6 @@ void Group(jjjson::usr user)
   system("clear");
 }
 
-
-
 int Logout(jjjson::usr user)
 {
   char f[1];
@@ -1542,9 +1549,9 @@ int Logout(jjjson::usr user)
 int menu(jjjson::usr user)
 {
   while (1)
-  {  
-    //Check(user);
-    Inform(user);
+  {
+    // Check(user);
+    //Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
     printf("   ***********          2.好友               **********  \n");
@@ -1568,7 +1575,7 @@ int menu(jjjson::usr user)
       Group(user);
       break;
     case 4:
-      Inform(user);
+      //Inform(user);
       break;
     case 5:
       if (Logout(user))
@@ -1630,6 +1637,18 @@ void login()
   if (strcmp(buf, "1") == 0)
   {
     cout << "login sucuess!" << endl;
+    pthread_t t;
+    struct sockaddr_in ser;
+    int ccfd = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&ser, sizeof(ser));
+    ser.sin_family = AF_INET;
+    inet_pton(AF_INET, "192.168.30.111", &ser.sin_addr);
+    ser.sin_port = htons(PORT);
+    // pthread_create(&tid,NULL,Recv,void *base)
+    connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));
+    jjjson::usr he=user;
+    he.fd=ccfd;
+    pthread_create(&t,NULL,Inform,(void *)&he);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)
@@ -1648,7 +1667,7 @@ void login()
 int login_menu()
 {
   while (1)
-  { 
+  {
     int select;
     cout << "/*************************************************/" << endl;
     cout << "/*  ____   _                  ____ _           _    */" << endl;
