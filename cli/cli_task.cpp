@@ -5,7 +5,7 @@ void *Inform(void *arg)
 { pthread_detach(pthread_self());
   jjjson ::usr u=*(jjjson::usr *)arg;
   while (1)
-  { //sleep(2);
+  { sleep(2);
 
     u.choice="inform";
     json j=u;
