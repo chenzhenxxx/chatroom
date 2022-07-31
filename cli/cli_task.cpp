@@ -589,13 +589,13 @@ void Chat_sb(jjjson::usr user)
     c = user;
     h = c.dump();
     send(cfd, h.c_str(), h.size(), 0);
-
+    cout<<"ok";
     while (1)
     {
       string s;
       s.clear();
       user.choice = "chat_sb";
-      cin >> s;
+      getline(cin,s);
       time_t t;
       t = time(NULL);
       user.mes_fri = s;
