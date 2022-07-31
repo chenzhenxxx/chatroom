@@ -411,10 +411,10 @@ void Deal_friendreq(jjjson::usr user)
         db->Get(leveldb::ReadOptions(), user.friendname, &value);
         j = json::parse(value);
         auto t = j.get<jjjson::usr>();
-        char buf[4096];
-        memset(buf, 0, sizeof(buf));
-        sprintf(buf, "%s reject to become your friend", user.name.c_str());
-        t.box.push_back(buf);
+        char b[4096];
+        memset(b, 0, sizeof(b));
+        sprintf(b, "%s reject to become your friend", user.name.c_str());
+        t.box.push_back(b);
         j = t;
         db->Delete(leveldb::WriteOptions(), user.friendname);
         db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
@@ -1432,7 +1432,7 @@ void Recv_file_fri(jjjson::usr user)
 
 void Send_file_fri(jjjson::usr user)
 {
-    long ret = 0,sum=0;
+    long ret = 0, sum = 0;
     long retw = 0;
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     int fd;
@@ -1445,16 +1445,16 @@ void Send_file_fri(jjjson::usr user)
     char x[4096];
     memset(x, 0, 4096);
     struct stat st;
-    lstat(path.c_str(),&st);
+    lstat(path.c_str(), &st);
     while (1)
     {
         ret = read(fd, x, 4096);
 
-        //x[ret] = '\0';
+        // x[ret] = '\0';
 
-        //cout << x << endl;
-        //cout << ret << endl;
-        //cout << strlen(x) << endl;
+        // cout << x << endl;
+        // cout << ret << endl;
+        // cout << strlen(x) << endl;
         sleep(0.01);
         retw = send(user.fd, x, ret, 0);
         if (retw > 0)
@@ -1466,12 +1466,12 @@ void Send_file_fri(jjjson::usr user)
         }
         if (sum >= st.st_size)
         {
-          
+
             break;
         }
     }
 
-     sleep(1);
+    sleep(1);
     // char buf[5]="over";
     // send(cfd,buf,4,0);
     // sleep(1);
@@ -1509,7 +1509,7 @@ void Recv_file_gro(jjjson::usr user)
     json j;
     string value;
     string s;
-    char buf[1024];
+    char buf[4096];
     s = "group";
     s += user.group;
     db->Get(leveldb::ReadOptions(), s, &value);
@@ -1560,34 +1560,37 @@ void Send_file_gro(jjjson ::usr user)
         cout << "open error" << endl;
         return;
     }
-    long ret = 0;
-    char x[1024];
-    memset(x, 0, 1024);
+    long ret = 0,sum=0,retw=0;
+    char x[4096];
+    memset(x, 0, 4096);
+    struct stat st;
+    lstat(path.c_str(), &st);
     while (1)
-    { // user.buf.clear();
-        // cout << "1" << endl;
-        ret = read(fd, x, 1024);
-        x[ret] = '\0';
-        // user.buf=x;
-        cout << x << endl;
-        cout << ret << endl;
-        cout << strlen(x) << endl;
-        // j=user;
-        // s=j.dump();
+    {
+        ret = read(fd, x, 4096);
+
+        // x[ret] = '\0';
+
+        // cout << x << endl;
+        // cout << ret << endl;
+        // cout << strlen(x) << endl;
         sleep(0.01);
-        send(user.fd, x, ret, 0);
-        memset(x, 0, 1024);
-        // sleep(1);
-        if (ret <= 0)
+        retw = send(user.fd, x, ret, 0);
+        if (retw > 0)
+            sum += retw;
+        memset(x, 0, 4096);
+        if (ret > retw)
         {
-            cout << "q!" << endl;
-            sleep(1);
-            char buf[5] = "over";
-            send(user.fd, buf, sizeof(buf), 0);
+            lseek(fd, sum, SEEK_SET);
+        }
+        if (sum >= st.st_size)
+        {
+
             break;
         }
-        // user.buf.clear();
     }
+
+    sleep(1);
     // sleep(1);
     // char buf[5]="over";
     // send(cfd,buf,4,0);
@@ -1644,14 +1647,14 @@ void *task(void *arg)
     pthread_detach(pthread_self());
     // cout << last_choice << endl;
     if (last_choice == "recv_file_fri" || last_choice == "recv_file_gro")
-    {   
+    {
         return NULL;
     }
     char buf[10000];
     memset(buf, 0, 10000);
     int len = recv(tmpfd, buf, 9999, MSG_WAITALL);
     buf[len] = '\0';
-     //cout << "tes;t" << buf << endl;
+    // cout << "tes;t" << buf << endl;
     if (len == 0)
     {
         // epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
@@ -1956,7 +1959,7 @@ void *task(void *arg)
             struct stat st;
             lstat(path.c_str(), &st);
             jjjson ::usr k;
-            k.id=st.st_size;
+            k.id = st.st_size;
             j = k;
             s = j.dump();
             send(user.fd, s.c_str(), s.size(), 0);
