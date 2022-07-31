@@ -1337,6 +1337,23 @@ void Offline_mes_gro(jjjson::usr user)
     db->Put(leveldb::WriteOptions(), s, j.dump());
 }
 
+
+void Offline_mes_fri(jjjson::usr user)
+{
+    string value;
+    json j;
+    string s =user.name;
+    s += user.friendname;
+    db->Get(leveldb::ReadOptions(), s, &value);
+    send(user.fd, value.c_str(), value.size(), 0);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Fri_chat>();
+    tmp.unread.clear();
+    tmp.unread_t.clear();
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+}
 void Check_group_history(jjjson::usr user)
 {
     string value;
@@ -1897,6 +1914,10 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline_mes_gro") == 0)
         {
             Offline_mes_gro(user);
+        }
+        else if (tmp.choice.compare("offline_mes_fri") == 0)
+        {
+            Offline_mes_fri(user);
         }
         else if (tmp.choice.compare("check_group_history") == 0)
         {

@@ -2,20 +2,22 @@
 int cfd;
 
 void *Inform(void *arg)
-{ pthread_detach(pthread_self());
-  jjjson ::usr u=*(jjjson::usr *)arg;
+{
+  pthread_detach(pthread_self());
+  jjjson ::usr u = *(jjjson::usr *)arg;
   while (1)
-  { sleep(2);
+  {
+    sleep(2);
 
-    u.choice="inform";
-    json j=u;
-    string s=j.dump();
-    send(u.fd,s.c_str(),s.size(),0);
+    u.choice = "inform";
+    json j = u;
+    string s = j.dump();
+    send(u.fd, s.c_str(), s.size(), 0);
     char buf[4096];
     memset(buf, 0, 4096);
     recv(u.fd, buf, 4096, 0);
-    //if(strlen(buf)==0)
-    //continue;
+    // if(strlen(buf)==0)
+    // continue;
     string tmp(buf);
 
     j = json::parse(tmp);
@@ -24,13 +26,12 @@ void *Inform(void *arg)
     {
       cout << uu.box.size() << endl;
       cout << "*********I N F O R M" << endl;
-    for (auto it = uu.box.begin(); it != uu.box.end(); it++)
-    {
-      cout << *it << endl;
+      for (auto it = uu.box.begin(); it != uu.box.end(); it++)
+      {
+        cout << *it << endl;
+      }
+      uu.box.clear();
     }
-    uu.box.clear();
-    }
-    
   }
 }
 void Check(jjjson::usr user)
@@ -89,7 +90,7 @@ void settings(jjjson::usr user)
 {
   while (1)
   {
-    //Inform(user);
+    // Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.昵称              **********  \n");
     printf("   ***********          2.密码               **********  \n");
@@ -314,15 +315,15 @@ void Delete_friend(jjjson::usr user)
 
 void *recv_chat(jjjson::usr arg)
 { // pthread_detach(pthread_self());
-   jjjson::usr tmp = arg;
+  jjjson::usr tmp = arg;
   // tmp.choice = "recv_mes";
-   json j = tmp;
-  //string s = j.dump();
-  // send(cfd, s.c_str(), s.size(), 0);
+  json j = tmp;
+  char buf[4096];
+  // string s = j.dump();
+  //  send(cfd, s.c_str(), s.size(), 0);
   while (1)
   {
 
-    char buf[4096];
     memset(buf, 0, 4096);
 
     int ret = recv(cfd, buf, 4096, 0);
@@ -395,36 +396,36 @@ void send_file_fri(jjjson::usr user)
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
-  long retw=0,sum;
+  long retw = 0, sum;
   char x[4096];
   memset(x, 0, 4096);
   sleep(1);
   while (1)
   { // user.buf.clear();
-  ret = read(fd, x, 4095);
-    //cout << "1" << endl;
+    ret = read(fd, x, 4095);
+    // cout << "1" << endl;
     x[ret] = '\0';
     // user.buf=x;
-    //cout << x << endl;
-   // cout << ret << endl;
-    //cout << strlen(x) << endl;
+    // cout << x << endl;
+    // cout << ret << endl;
+    // cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
     sleep(0.01);
-    retw=send(cfd, x, ret, 0);
-    if(retw>0)
-    sum+=retw;
+    retw = send(cfd, x, ret, 0);
+    if (retw > 0)
+      sum += retw;
     memset(x, 0, 4096);
-    if(ret>retw)
+    if (ret > retw)
     {
-      lseek(fd,sum,SEEK_SET);
+      lseek(fd, sum, SEEK_SET);
     }
     // sleep(1);
-    if (sum>=st.st_size)
-    {   
-      //sleep(1);
-      //char buf[5] = "over";
-      //send(cfd, buf, sizeof(buf), 0);
+    if (sum >= st.st_size)
+    {
+      // sleep(1);
+      // char buf[5] = "over";
+      // send(cfd, buf, sizeof(buf), 0);
       break;
     }
     // user.buf.clear();
@@ -488,42 +489,41 @@ void recv_file_fri(jjjson::usr user)
       continue;
     }
 
-   
-    memset(buf,0,4096);
-    long size=0;long tmplen=0;
+    memset(buf, 0, 4096);
+    long size = 0;
+    long tmplen = 0;
     user.filename = q;
-    user.choice="file_size";
+    user.choice = "file_size";
     j = user;
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd,buf,4096,0);
+    recv(cfd, buf, 4096, 0);
     string d(buf);
-    j=json::parse(d);
-    auto tt=j.get<jjjson::usr>();
-    size=tt.id;
+    j = json::parse(d);
+    auto tt = j.get<jjjson::usr>();
+    size = tt.id;
     sleep(1);
-    
 
     user.choice = "send_file_fri";
     j = user;
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
 
-    long ret = 0,ret2=0;
+    long ret = 0, ret2 = 0;
     memset(buf, 0, 4096);
     while (1)
     {
 
-      ret2=recv(cfd, buf, 4095,0);
-        ret=write(fd, buf,ret2);
-        if(ret>0)
-        tmplen+=ret;
-        if(tmplen>=size)
-        {   
-            break;
-        }
+      ret2 = recv(cfd, buf, 4095, 0);
+      ret = write(fd, buf, ret2);
+      if (ret > 0)
+        tmplen += ret;
+      if (tmplen >= size)
+      {
+        break;
+      }
 
-        memset(buf,0,4096);
+      memset(buf, 0, 4096);
     }
     close(fd);
   }
@@ -532,6 +532,7 @@ void recv_file_fri(jjjson::usr user)
 void Chat_sb(jjjson::usr user)
 {
   char f[4096];
+  memset(f, 0, 4096);
   cout << "请输入聊天对象" << endl;
   cin >> user.friendname;
   user.choice = "check_friend";
@@ -574,16 +575,20 @@ void Chat_sb(jjjson::usr user)
   int select;
   cin >> select;
   if (select == 1)
-  { json c;string h;
-    user.choice="chat_sb";  //唤醒
-    user.mes_fri="";
-    c=user;
-    h=c.dump();
-    send(cfd,h.c_str(),h.size(),0);
-
-
+  {
+    json c;
+    string h;
     pthread_t tid;
     thread recvv(recv_chat, user);
+    user.choice = "offline_mes_fri";
+    json k = user;
+    string l = k.dump();
+    send(cfd, l.c_str(), l.size(), 0);
+    user.choice = "chat_sb"; //唤醒
+    user.mes_fri = "";
+    c = user;
+    h = c.dump();
+    send(cfd, h.c_str(), h.size(), 0);
 
     while (1)
     {
@@ -729,7 +734,7 @@ void Friend(jjjson::usr user)
 {
   while (1)
   { // system("clear");
-    //Inform(user);
+    // Inform(user);
     cout << "************friend" << endl;
     user.choice = "look_friend";
 
@@ -1207,7 +1212,8 @@ void chat_group(jjjson::usr user)
   string select;
   cin >> select;
   if (select == "1")
-  { pthread_t tid;
+  {
+    pthread_t tid;
     thread recvv(recv_chat_group, user);
     user.choice = "offline_mes_gro"; //获取离线消息
     json k = user;
@@ -1277,36 +1283,32 @@ void send_file_gro(jjjson::usr user)
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
 
-  char x[1024];
-  memset(x, 0, 1024);
+  long retw = 0, sum;
+  char x[4096];
+  memset(x, 0, 4096);
+  sleep(1);
   while (1)
-  { // user.buf.clear();
-    //cout << "1" << endl;
-    ret = read(fd, x, 1024);
+  {
+    ret = read(fd, x, 4095);
+
     x[ret] = '\0';
-    // user.buf=x;
-    cout << x << endl;
-    cout << ret << endl;
-    cout << strlen(x) << endl;
-    // j=user;
-    // s=j.dump();
+
     sleep(0.01);
-    send(cfd, x, ret, 0);
-    memset(x, 0, 1024);
-    // sleep(1);
-    if (ret <=0)
+    retw = send(cfd, x, ret, 0);
+    if (retw > 0)
+      sum += retw;
+    memset(x, 0, 4096);
+    if (ret > retw)
     {
-      sleep(1);
-      char buf[5] = "over";
-      send(cfd, buf, sizeof(buf), 0);
+      lseek(fd, sum, SEEK_SET);
+    }
+
+    if (sum >= st.st_size)
+    {
       break;
     }
-    // user.buf.clear();
   }
-  // sleep(1);
-  // char buf[5]="over";
-  // send(cfd,buf,4,0);
-  // sleep(1);
+  sleep(1);
   close(fd);
 }
 
@@ -1361,28 +1363,40 @@ void recv_file_gro(jjjson::usr user)
       cout << "create file error" << endl;
       continue;
     }
+    memset(buf, 0, 4096);
+    long size = 0;
+    long tmplen = 0;
+    user.filename = q;
+    user.choice = "file_size";
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    recv(cfd, buf, 4096, 0);
+    string d(buf);
+    j = json::parse(d);
+    auto tt = j.get<jjjson::usr>();
+    size = tt.id;
+    sleep(1);
+
     user.filename = q;
     user.choice = "send_file_gro";
     j = user;
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
 
-    int ret = 0;
+    long ret = 0, ret2 = 0;
     memset(buf, 0, 4096);
     while (1)
     {
 
-      ret = recv(cfd, buf, 4095, MSG_WAITALL);
-      // cout << buf << endl;
-      if (strcmp(buf, "over") == 0)
+      ret2 = recv(cfd, buf, 4095, 0);
+      ret = write(fd, buf, ret2);
+      if (ret > 0)
+        tmplen += ret;
+      if (tmplen >= size)
       {
-        cout << "over" << endl;
         break;
       }
-
-      // if(ret<4096)
-      // buf[ret]='\0';
-      write(fd, buf, ret);
 
       memset(buf, 0, 4096);
     }
@@ -1414,7 +1428,7 @@ void Enter_group(jjjson::usr user)
   }
   while (1)
   {
-    //Inform(user);
+    // Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.查看群成员列表          **********  \n");
     printf("   ***********          2.设置/取消管理员       **********  \n");
@@ -1499,7 +1513,7 @@ void Group(jjjson::usr user)
 {
   while (1)
   {
-    //Inform(user);
+    // Inform(user);
     char buf[4096];
     memset(buf, 0, 4096);
     string s;
@@ -1581,7 +1595,7 @@ int menu(jjjson::usr user)
   while (1)
   {
     // Check(user);
-    //Inform(user);
+    // Inform(user);
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.个人信息设置       **********  \n");
     printf("   ***********          2.好友               **********  \n");
@@ -1605,7 +1619,7 @@ int menu(jjjson::usr user)
       Group(user);
       break;
     case 4:
-      //Inform(user);
+      // Inform(user);
       break;
     case 5:
       if (Logout(user))
@@ -1676,9 +1690,9 @@ void login()
     ser.sin_port = htons(PORT);
     // pthread_create(&tid,NULL,Recv,void *base)
     connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));
-    jjjson::usr he=user;
-    he.fd=ccfd;
-    pthread_create(&t,NULL,Inform,(void *)&he);
+    jjjson::usr he = user;
+    he.fd = ccfd;
+    pthread_create(&t, NULL, Inform, (void *)&he);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)
