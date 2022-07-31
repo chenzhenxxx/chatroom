@@ -1336,13 +1336,11 @@ void Offline_mes_gro(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 }
-
-
 void Offline_mes_fri(jjjson::usr user)
 {
     string value;
     json j;
-    string s =user.name;
+    string s=user.name;
     s += user.friendname;
     db->Get(leveldb::ReadOptions(), s, &value);
     send(user.fd, value.c_str(), value.size(), 0);
@@ -1354,6 +1352,7 @@ void Offline_mes_fri(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 }
+
 void Check_group_history(jjjson::usr user)
 {
     string value;

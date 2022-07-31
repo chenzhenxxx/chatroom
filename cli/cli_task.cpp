@@ -327,6 +327,7 @@ void *recv_chat(jjjson::usr arg)
     memset(buf, 0, 4096);
 
     int ret = recv(cfd, buf, 4096, 0);
+
     if ((strcmp(buf, "quit")) == 0)
     {
       // cout << "gameover" << endl;
@@ -571,7 +572,6 @@ void Chat_sb(jjjson::usr user)
   cout << "3.发文件" << endl;
   cout << "4.收文件" << endl;
   cout << "5.输入其他键退出" << endl;
-
   int select;
   cin >> select;
   if (select == 1)
@@ -593,9 +593,8 @@ void Chat_sb(jjjson::usr user)
     while (1)
     {
       string s;
-      s.clear();
       user.choice = "chat_sb";
-      getline(cin,s);
+      cin>>s;
       time_t t;
       t = time(NULL);
       user.mes_fri = s;
