@@ -387,7 +387,7 @@ void send_file_fri(jjjson::usr user)
   }
   json j;
   string s;
-  int ret = 0;
+  long ret = 0;
   user.choice = "recv_file_fri";
   struct stat st;
   stat(path.c_str(), &st);
@@ -395,28 +395,36 @@ void send_file_fri(jjjson::usr user)
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
-
+  long retw=0,sum;
   char x[4096];
   memset(x, 0, 4096);
-  while ((ret = read(fd, x, 4095)) > 0)
+  sleep(1);
+  while (1)
   { // user.buf.clear();
-    cout << "1" << endl;
+  ret = read(fd, x, 4095);
+    //cout << "1" << endl;
     x[ret] = '\0';
     // user.buf=x;
-    cout << x << endl;
-    cout << ret << endl;
-    cout << strlen(x) << endl;
+    //cout << x << endl;
+   // cout << ret << endl;
+    //cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
     sleep(0.01);
-    send(cfd, x, ret, 0);
+    retw=send(cfd, x, ret, 0);
+    if(retw>0)
+    sum+=retw;
     memset(x, 0, 4096);
-    // sleep(1);
-    if (ret != 4095)
+    if(ret>retw)
     {
-      sleep(1);
-      char buf[5] = "over";
-      send(cfd, buf, sizeof(buf), 0);
+      lseek(fd,sum,SEEK_SET);
+    }
+    // sleep(1);
+    if (sum>=st.st_size)
+    {   
+      //sleep(1);
+      //char buf[5] = "over";
+      //send(cfd, buf, sizeof(buf), 0);
       break;
     }
     // user.buf.clear();
@@ -425,6 +433,7 @@ void send_file_fri(jjjson::usr user)
   // char buf[5]="over";
   // send(cfd,buf,4,0);
   // sleep(1);
+  sleep(1);
   close(fd);
 }
 
@@ -478,30 +487,43 @@ void recv_file_fri(jjjson::usr user)
       cout << "create file error" << endl;
       continue;
     }
+
+   
+    memset(buf,0,4096);
+    long size=0;long tmplen=0;
     user.filename = q;
+    user.choice="file_size";
+    j = user;
+    s = j.dump();
+    send(cfd, s.c_str(), s.size(), 0);
+    recv(cfd,buf,4096,0);
+    string d(buf);
+    j=json::parse(d);
+    auto tt=j.get<jjjson::usr>();
+    size=tt.id;
+    sleep(1);
+    
+
     user.choice = "send_file_fri";
     j = user;
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
 
-    int ret = 0;
+    long ret = 0,ret2=0;
     memset(buf, 0, 4096);
     while (1)
     {
 
-      ret = recv(cfd, buf, 4095, 0);
-      // cout << buf << endl;
-      if (strcmp(buf, "over") == 0)
-      {
-        cout << "over" << endl;
-        break;
-      }
+      ret2=recv(cfd, buf, 4095,0);
+        ret=write(fd, buf,ret2);
+        if(ret>0)
+        tmplen+=ret;
+        if(tmplen>=size)
+        {   
+            break;
+        }
 
-      // if(ret<4096)
-      // buf[ret]='\0';
-      write(fd, buf, ret);
-
-      memset(buf, 0, 4096);
+        memset(buf,0,4096);
     }
     close(fd);
   }
@@ -683,7 +705,7 @@ void send_file(jjjson::usr user)
     cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
-    sleep(0.01);
+    sleep(0.1);
     send(cfd, x, ret, 0);
     memset(x, 0, 4096);
     // sleep(1);
@@ -1255,11 +1277,12 @@ void send_file_gro(jjjson::usr user)
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
 
-  char x[4096];
-  memset(x, 0, 4096);
-  while ((ret = read(fd, x, 4095)) > 0)
+  char x[1024];
+  memset(x, 0, 1024);
+  while (1)
   { // user.buf.clear();
-    cout << "1" << endl;
+    //cout << "1" << endl;
+    ret = read(fd, x, 1024);
     x[ret] = '\0';
     // user.buf=x;
     cout << x << endl;
@@ -1269,9 +1292,9 @@ void send_file_gro(jjjson::usr user)
     // s=j.dump();
     sleep(0.01);
     send(cfd, x, ret, 0);
-    memset(x, 0, 4096);
+    memset(x, 0, 1024);
     // sleep(1);
-    if (ret != 4095)
+    if (ret <=0)
     {
       sleep(1);
       char buf[5] = "over";
