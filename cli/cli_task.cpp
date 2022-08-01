@@ -330,13 +330,18 @@ void *recv_chat(jjjson::usr arg)
 
     if ((strcmp(buf, "quit")) == 0)
     {
-      // cout << "gameover" << endl;
+       cout << "gameover" << endl;
       break;
     }
     else
     {
       string t(buf);
-
+      if(t.size()==0||strlen(buf)==0)
+      {
+        continue;
+      }
+      //cout<<buf<<endl;
+      cout<<"WWW"<<t<<endl;
       json j = json::parse(t);
       auto q = j.get<jjjson::Fri_chat>();
       for (auto it = q.unread.begin(); it != q.unread.end(); it++)
@@ -349,6 +354,7 @@ void *recv_chat(jjjson::usr arg)
       }
     }
   }
+  sleep(1);
   return NULL;
 }
 
@@ -589,10 +595,11 @@ void Chat_sb(jjjson::usr user)
     c = user;
     h = c.dump();
     send(cfd, h.c_str(), h.size(), 0);
-    cout<<"ok";
+    
     while (1)
     {
       string s;
+      cout<<"ok";
       user.choice = "chat_sb";
       cin>>s;
       time_t t;
@@ -1145,11 +1152,11 @@ void *recv_chat_group(jjjson::usr arg)
   // tmp.choice = "recv_mes_gro";
   // json j = tmp;
   // string s = j.dump();
+  char buf[4096];
   // send(cfd, s.c_str(), s.size(), 0);
   while (1)
   {
 
-    char buf[4096];
     memset(buf, 0, 4096);
 
     int ret = recv(cfd, buf, 4096, 0);
@@ -1159,9 +1166,12 @@ void *recv_chat_group(jjjson::usr arg)
       break;
     }
     else
-    {
+    { 
       string t(buf);
-      // cout<<"khj--"<<t<<endl;
+      cout<<"khj--"<<t<<endl;
+     
+      if(t.size()==0||strlen(buf)==0)
+       continue;
       json j = json::parse(t);
       auto q = j.get<jjjson::Gro_chat>();
       for (auto it = q.unread_mes.begin(); it != q.unread_mes.end(); it++)
@@ -1174,6 +1184,8 @@ void *recv_chat_group(jjjson::usr arg)
       }
     }
   }
+  sleep(1);
+ 
   return NULL;
 }
 
@@ -1214,14 +1226,18 @@ void chat_group(jjjson::usr user)
   {
     pthread_t tid;
     thread recvv(recv_chat_group, user);
-    user.choice = "offline_mes_gro"; //获取离线消息
-    json k = user;
-    string l = k.dump();
-    send(cfd, l.c_str(), l.size(), 0);
+     user.choice = "offline_mes_gro"; //获取离线消息
+     json k = user;
+     string l = k.dump();
+     //string l;
+     send(cfd, l.c_str(), l.size(), 0);
+
+     sleep(1);
     user.choice = "chat_group"; //先唤醒聊天状态
     user.mes_fri = "";
     json j = user;
     l = j.dump();
+
     send(cfd, l.c_str(), l.size(), 0);
     while (1)
     {
@@ -1522,7 +1538,6 @@ void Group(jjjson::usr user)
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
-    buf[strlen(buf)] = '\0';
     string t(buf);
     j = json::parse(t);
     auto tmp = j.get<jjjson::myGroup>();
