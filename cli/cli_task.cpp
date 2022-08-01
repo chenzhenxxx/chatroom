@@ -1190,13 +1190,10 @@ void *recv_chat_group(jjjson::usr arg)
       cout << "gameover" << endl;
       break;
     }
-    else
+    else if((t.size()!=0&&strlen(buf)!=0))
     { 
       string t(buf);
       cout<<"khj--"<<t<<endl;
-     
-      if(t.size()==0||strlen(buf)==0)
-       continue;
       json j = json::parse(t);
       auto q = j.get<jjjson::Gro_chat>();
       for (auto it = q.unread_mes.begin(); it != q.unread_mes.end(); it++)
