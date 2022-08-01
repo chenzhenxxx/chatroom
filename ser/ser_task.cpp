@@ -1401,8 +1401,8 @@ void *R_file(void *arg)
         ret = write(fd, buf, ret2);
         if (ret > 0)
             tmplen += ret;
-        cout << tmplen << endl;
-        cout << last_len << endl;
+        //cout << tmplen << endl;
+        //cout << last_len << endl;
         if (tmplen >= last_len)
         {
             last_choice = "";

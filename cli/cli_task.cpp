@@ -382,13 +382,27 @@ void Check_history(jjjson::usr user)
 
 void send_file_fri(jjjson::usr user)
 {
-  string path;
+  char  path[1000], name[200];
+  int cnt=0;
   cout << "请输入文件地址" << endl;
   cin >> path;
-  cout << "请输保存文件名" << endl;
-  cin >> user.filename;
+  int sign=0;
+  for(int i=strlen(path)-1;i>=0;i--)
+  {
+    if(path[i]=='/')
+    {
+      sign=i;
+      break;
+    }
+  }
+
+for(int j=sign+1;j<strlen(path);j++)
+ {
+    name[cnt++]=path[j];
+ }
+  user.filename=name;
   int fd;
-  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+  if ((fd = open(path, O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -398,7 +412,7 @@ void send_file_fri(jjjson::usr user)
   long ret = 0;
   user.choice = "recv_file_fri";
   struct stat st;
-  stat(path.c_str(), &st);
+  stat(path, &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
@@ -681,14 +695,25 @@ void Shield_fri(jjjson::usr user)
 }
 
 void send_file(jjjson::usr user)
-{
-  string path;
+{ int sign;
+  char path[1000] ;
   cout << "请输入文件地址" << endl;
   cin >> path;
-  cout << "请输保存文件名" << endl;
-  cin >> user.filename;
+  for(int i=strlen(path)-1;i>=0;i--)
+  {
+    if(i=='/')
+    {
+      sign=i;
+      break;
+    }
+  }
+  for(int j=sign+1;j<strlen(path);j++)
+  {
+    user.filename+=path[j];
+  }
+
   int fd;
-  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+  if ((fd = open(path, O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -698,7 +723,7 @@ void send_file(jjjson::usr user)
   int ret = 0;
   user.choice = "recv_file";
   struct stat st;
-  stat(path.c_str(), &st);
+  stat(path, &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
@@ -1275,14 +1300,27 @@ void chat_group(jjjson::usr user)
 }
 
 void send_file_gro(jjjson::usr user)
-{
-  string path;
+{ int cnt=0;
+  char path[1000],name[200];
   cout << "请输入文件地址" << endl;
   cin >> path;
-  cout << "请输保存文件名" << endl;
-  cin >> user.filename;
+  int sign=0;
+    for(int i=strlen(path)-1;i>=0;i--)
+  {
+    if(path[i]=='/')
+    {
+      sign=i;
+      break;
+    }
+  }
+
+for(int j=sign+1;j<strlen(path);j++)
+ {
+    name[cnt++]=path[j];
+ }
+ user.filename=name;
   int fd;
-  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
+  if ((fd = open(path, O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -1292,7 +1330,7 @@ void send_file_gro(jjjson::usr user)
   int ret = 0;
   user.choice = "recv_file_gro";
   struct stat st;
-  stat(path.c_str(), &st);
+  stat(path, &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
