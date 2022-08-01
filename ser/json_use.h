@@ -62,7 +62,7 @@ namespace jjjson
     class usr
     {
     public:
-        int id;
+        long long id;
         int fd;
         string friendname;
         int friendid;

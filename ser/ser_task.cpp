@@ -19,7 +19,7 @@ using namespace std;
 string last_choice;
 string last_path;
 int last_fd;
-long long last_len;
+long long last_len=0;
 void Disband_group(jjjson::usr user);
 void Sign(jjjson::usr user)
 {
@@ -1214,6 +1214,29 @@ void Withdraw_group(jjjson::usr user)
     }
 }
 
+void Offline_mes_gro(jjjson::usr user)
+{
+    string value;
+    json j;
+    string s = "group_chat";
+    s += user.group;
+    s += user.name;
+    db->Get(leveldb::ReadOptions(), s, &value);
+     j = json::parse(value);
+    auto tmp = j.get<jjjson::Gro_chat>();
+    if(!tmp.unread_mes.empty())
+    {
+    send(user.fd, value.c_str(), value.size(), 0);
+    tmp.unread_mes.clear();
+    tmp.unread_t.clear();
+    j = tmp;
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
+    }
+}
+
+
+
 void Chat_group(jjjson::usr user)
 {
     string v;
@@ -1226,8 +1249,6 @@ void Chat_group(jjjson::usr user)
     j = tmp;
     db->Delete(leveldb::WriteOptions(), user.name);
     db->Put(leveldb::WriteOptions(), user.name, j.dump());
-    if (user.mes_fri == "")
-        return;
     if (user.mes_fri == "quit")
     {
         string buf = "quit";
@@ -1243,7 +1264,11 @@ void Chat_group(jjjson::usr user)
         send(user.fd, buf.c_str(), buf.size(), 0);
         return;
     }
-
+    else if((user.mes_fri == ""))
+    {    cout<<"start"<<endl;
+         Offline_mes_gro(user);
+         return;
+    }
     string s = "group";
     string value;
     s += user.group;
@@ -1319,23 +1344,6 @@ void Chat_group(jjjson::usr user)
     }
 }
 
-void Offline_mes_gro(jjjson::usr user)
-{
-    string value;
-    json j;
-    string s = "group_chat";
-    s += user.group;
-    s += user.name;
-    db->Get(leveldb::ReadOptions(), s, &value);
-    send(user.fd, value.c_str(), value.size(), 0);
-    j = json::parse(value);
-    auto tmp = j.get<jjjson::Gro_chat>();
-    tmp.unread_mes.clear();
-    tmp.unread_t.clear();
-    j = tmp;
-    db->Delete(leveldb::WriteOptions(), s);
-    db->Put(leveldb::WriteOptions(), s, j.dump());
-}
 void Offline_mes_fri(jjjson::usr user)
 {
     string value;
@@ -1363,13 +1371,13 @@ void Check_group_history(jjjson::usr user)
     send(user.fd, value.c_str(), value.size(), 0);
 }
 
-void *R_file(void *arg)
+void * R_file(void *arg)
 {
     pthread_detach(pthread_self());
     char buf[4096];
     long long tmplen = 0;
-    int ret;
-    int ret2;
+    long long  ret=0;
+    long long ret2=0;
     memset(buf, 0, 4096);
     cout << last_path << endl;
     int fd = open(last_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -1413,7 +1421,7 @@ void Recv_file_fri(jjjson::usr user)
     last_choice = "recv_file_fri";
     last_fd = user.fd;
     last_len = user.id;
-
+    
     string value;
     json j;
     string s = user.friendname;
@@ -1426,15 +1434,15 @@ void Recv_file_fri(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
-    db->Get(leveldb::ReadOptions(), user.friendname, &value);
-    j = json::parse(value);
-    auto t = j.get<jjjson::usr>();
-    char buf[4096];
-    sprintf(buf, "%s send a file : %s to you", user.name.c_str(), user.filename.c_str());
-    t.box.push_back(buf);
-    j = t;
-    db->Delete(leveldb::WriteOptions(), user.friendname);
-    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    // db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    // j = json::parse(value);
+    // auto t = j.get<jjjson::usr>();
+    // char buf[4096];
+    // sprintf(buf, "%s send a file : %s to you", user.name.c_str(), user.filename.c_str());
+    // t.box.push_back(buf);
+    // j = t;
+    // db->Delete(leveldb::WriteOptions(), user.friendname);
+    // db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
 
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     last_path = path;
@@ -1448,8 +1456,8 @@ void Recv_file_fri(jjjson::usr user)
 
 void Send_file_fri(jjjson::usr user)
 {
-    long ret = 0, sum = 0;
-    long retw = 0;
+    long long  ret = 0, sum = 0;
+    long long retw = 0;
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     int fd;
     if ((fd = open(path.c_str(), O_RDONLY)) < 0)
@@ -1576,7 +1584,7 @@ void Send_file_gro(jjjson ::usr user)
         cout << "open error" << endl;
         return;
     }
-    long ret = 0,sum=0,retw=0;
+    long long ret = 0,sum=0,retw=0;
     char x[4096];
     memset(x, 0, 4096);
     struct stat st;
@@ -1932,8 +1940,9 @@ void *task(void *arg)
             db->Get(leveldb::ReadOptions(), user.friendname, &value);
             j = json::parse(value);
             auto tmp = j.get<jjjson::usr>();
-            sprintf(buf, "%s send a file: %s to you ", user.name.c_str(), user.filename.c_str());
-            tmp.box.push_back(buf);
+            sprintf(buf, "%s send a file: %s to you", user.name.c_str(), user.filename.c_str());
+            string t(buf);
+            tmp.box.push_back(t);
             j = tmp;
             db->Delete(leveldb::WriteOptions(), user.friendname);
             db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
