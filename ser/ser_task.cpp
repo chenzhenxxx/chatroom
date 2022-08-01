@@ -227,7 +227,7 @@ void Logout(jjjson::usr user)
         s += user.name;
         db->Delete(leveldb::WriteOptions(), s);
     }
-    s = "mygroup";
+    s = "group";
     s += user.name;
     db->Delete(leveldb::WriteOptions(), s);
     char f[1];
@@ -545,8 +545,8 @@ void Chat_sb(jjjson::usr user)
         j = tmp;
         db->Delete(leveldb::WriteOptions(), user.name);
         db->Put(leveldb::WriteOptions(), user.name, j.dump());
+
         send(user.fd, buf.c_str(), buf.size(), 0);
-        sleep(1);
         return;
     }
     string s = user.friendname;
@@ -560,7 +560,7 @@ void Chat_sb(jjjson::usr user)
     // cout << "Jj" << j << endl;
     string h;
     h = user.name + " :" + user.mes_fri;
-    if (tmp.history.size() > 20) // 超过50条消息就把前面的删了
+    if (tmp.history.size() > 50) // 超过50条消息就把前面的删了
     {
         tmp.history.erase(tmp.history.begin());
         tmp.history.push_back(h);
@@ -588,7 +588,7 @@ void Chat_sb(jjjson::usr user)
     db->Get(leveldb::ReadOptions(), s, &value); //放到自己的消息记录
     j = json::parse(value);
     auto t = j.get<jjjson::Fri_chat>();
-    if (t.history.size() > 20) // 超过50条消息就把前面的删了
+    if (t.history.size() > 50) // 超过50条消息就把前面的删了
     {
         t.history.erase(t.history.begin());
         t.history.push_back(h);
@@ -625,7 +625,6 @@ void Chat_sb(jjjson::usr user)
         j = json::parse(value);
         auto f = j.get<jjjson::Fri_chat>();
         send(i.fd, value.c_str(), value.size(), 0);
-        sleep(1);
         f.unread.clear();
         f.unread_t.clear();
         j = f;
@@ -802,7 +801,6 @@ void Build_create(jjjson::usr user)
     }
 
     send(user.fd, f, 1, 0);
-    sleep(1);
 }
 
 void Join_group(jjjson::usr user)
@@ -1079,7 +1077,7 @@ void Disband_group(jjjson::usr user)
         string t, v;
         json k;
         string r;
-        t = "group";
+        t = "mygroup";
         t += *it;
         db->Get(leveldb::ReadOptions(), t, &v);
         k = json::parse(v);
@@ -1159,7 +1157,6 @@ void Look_g(jjjson::usr user)
     }
 
     send(user.fd, f, 1, 0);
-    sleep(1);
 }
 
 void Withdraw_group(jjjson::usr user)
@@ -1242,8 +1239,8 @@ void Chat_group(jjjson::usr user)
         j = tmp;
         db->Delete(leveldb::WriteOptions(), user.name);
         db->Put(leveldb::WriteOptions(), user.name, j.dump());
+
         send(user.fd, buf.c_str(), buf.size(), 0);
-        sleep(1);
         return;
     }
 
@@ -1253,7 +1250,7 @@ void Chat_group(jjjson::usr user)
     db->Get(leveldb::ReadOptions(), s, &value);
     j = json::parse(value);
     auto t = j.get<jjjson::Group>();
-    if (t.history.size() > 10) // 超过50条消息就把前面的删了
+    if (t.history.size() > 30) // 超过50条消息就把前面的删了
     {
         t.history.erase(t.history.begin());
         t.history.push_back(user.mes_fri);
@@ -1293,11 +1290,10 @@ void Chat_group(jjjson::usr user)
         if (y.choice == "chat_group" && y.group == user.group)
         {
             string r;
-            string sj = "group_chat";
-            sj += user.group;
-            sj += *it;
-            db->Get(leveldb::ReadOptions(), sj, &r);
-            cout << "mes" << r << endl;
+            string ss = "group_chat";
+            ss += user.group;
+            ss += *it;
+            db->Get(leveldb::ReadOptions(), ss, &r);
             send(y.fd, r.c_str(), r.size(), 0);
             cout << "myfd" << y.fd << endl;
             j = json::parse(r);
@@ -1305,13 +1301,11 @@ void Chat_group(jjjson::usr user)
             u.unread_mes.clear();
             u.unread_t.clear();
             j = u;
-            db->Delete(leveldb::WriteOptions(), sj);
-            db->Put(leveldb::WriteOptions(), sj, j.dump());
+            db->Delete(leveldb::WriteOptions(), ss);
+            db->Put(leveldb::WriteOptions(), ss, j.dump());
         }
         else
         {
-            if (*it == user.name)
-                continue;
             db->Get(leveldb::ReadOptions(), *it, &value);
             j = json::parse(value);
             auto c = j.get<jjjson::usr>();
@@ -1333,13 +1327,9 @@ void Offline_mes_gro(jjjson::usr user)
     s += user.group;
     s += user.name;
     db->Get(leveldb::ReadOptions(), s, &value);
-    if(value.size()==0||value=="")
-    return;
-     j = json::parse(value);
-    auto tmp = j.get<jjjson::Gro_chat>();
-    if(tmp.unread_mes.size()==0||tmp.unread_mes.empty())
-    return;
     send(user.fd, value.c_str(), value.size(), 0);
+    j = json::parse(value);
+    auto tmp = j.get<jjjson::Gro_chat>();
     tmp.unread_mes.clear();
     tmp.unread_t.clear();
     j = tmp;
@@ -1350,7 +1340,7 @@ void Offline_mes_fri(jjjson::usr user)
 {
     string value;
     json j;
-    string s = user.name;
+    string s=user.name;
     s += user.friendname;
     db->Get(leveldb::ReadOptions(), s, &value);
     send(user.fd, value.c_str(), value.size(), 0);
@@ -1401,8 +1391,8 @@ void *R_file(void *arg)
         ret = write(fd, buf, ret2);
         if (ret > 0)
             tmplen += ret;
-        //cout << tmplen << endl;
-        //cout << last_len << endl;
+        cout << tmplen << endl;
+        cout << last_len << endl;
         if (tmplen >= last_len)
         {
             last_choice = "";
@@ -1586,7 +1576,7 @@ void Send_file_gro(jjjson ::usr user)
         cout << "open error" << endl;
         return;
     }
-    long ret = 0, sum = 0, retw = 0;
+    long ret = 0,sum=0,retw=0;
     char x[4096];
     memset(x, 0, 4096);
     struct stat st;
@@ -1734,6 +1724,7 @@ void *task(void *arg)
             s += user.name;
             auto status = db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
+            sleep(1);
             json j = json::parse(value);
             auto tmp = j.get<jjjson::Friend>();
             for (auto it = tmp.myfri.begin(); it != tmp.myfri.end(); it++)
@@ -1886,7 +1877,6 @@ void *task(void *arg)
             s += user.name;
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
-            sleep(1);
         }
         else if (tmp.choice.compare("check_member") == 0)
         {
@@ -1896,7 +1886,6 @@ void *task(void *arg)
             s += user.group;
             db->Get(leveldb::ReadOptions(), s, &value);
             send(user.fd, value.c_str(), value.size(), 0);
-            sleep(1);
         }
         else if (tmp.choice.compare("set_manager") == 0 || tmp.choice.compare("canel_manager") == 0)
         {

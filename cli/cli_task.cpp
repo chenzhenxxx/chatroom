@@ -7,12 +7,11 @@ void *Inform(void *arg)
   jjjson ::usr u = *(jjjson::usr *)arg;
   while (1)
   {
-    sleep(2);
-
     u.choice = "inform";
     json j = u;
     string s = j.dump();
     send(u.fd, s.c_str(), s.size(), 0);
+    sleep(2);
     char buf[4096];
     memset(buf, 0, 4096);
     recv(u.fd, buf, 4096, 0);
@@ -330,18 +329,13 @@ void *recv_chat(jjjson::usr arg)
 
     if ((strcmp(buf, "quit")) == 0)
     {
-       cout << "gameover" << endl;
+      // cout << "gameover" << endl;
       break;
     }
     else
     {
       string t(buf);
-      if(t.size()==0||strlen(buf)==0)
-      {
-        continue;
-      }
-      //cout<<buf<<endl;
-      cout<<"WWW"<<t<<endl;
+
       json j = json::parse(t);
       auto q = j.get<jjjson::Fri_chat>();
       for (auto it = q.unread.begin(); it != q.unread.end(); it++)
@@ -354,7 +348,6 @@ void *recv_chat(jjjson::usr arg)
       }
     }
   }
-  sleep(1);
   return NULL;
 }
 
@@ -382,27 +375,13 @@ void Check_history(jjjson::usr user)
 
 void send_file_fri(jjjson::usr user)
 {
-  char  path[1000], name[200];
-  int cnt=0;
+  string path;
   cout << "请输入文件地址" << endl;
   cin >> path;
-  int sign=0;
-  for(int i=strlen(path)-1;i>=0;i--)
-  {
-    if(path[i]=='/')
-    {
-      sign=i;
-      break;
-    }
-  }
-
-for(int j=sign+1;j<strlen(path);j++)
- {
-    name[cnt++]=path[j];
- }
-  user.filename=name;
+  cout << "请输保存文件名" << endl;
+  cin >> user.filename;
   int fd;
-  if ((fd = open(path, O_RDONLY)) < 0)
+  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -412,12 +391,12 @@ for(int j=sign+1;j<strlen(path);j++)
   long ret = 0;
   user.choice = "recv_file_fri";
   struct stat st;
-  stat(path, &st);
+  stat(path.c_str(), &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
-  long retw = 0, sum;
+  long retw = 0, sum=0;
   char x[4096];
   memset(x, 0, 4096);
   sleep(1);
@@ -442,6 +421,8 @@ for(int j=sign+1;j<strlen(path);j++)
       lseek(fd, sum, SEEK_SET);
     }
     // sleep(1);
+    cout<<sum<<endl;
+    cout<<st.st_size<<endl;
     if (sum >= st.st_size)
     {
       // sleep(1);
@@ -561,6 +542,7 @@ void Chat_sb(jjjson::usr user)
   string r = j.dump();
   send(cfd, r.c_str(), r.size(), 0);
   recv(cfd, f, 4096, 0);
+  sleep(1);
   // cout<<"f=="<<f<<endl;
   if (f[0] == '0')
   {
@@ -609,11 +591,10 @@ void Chat_sb(jjjson::usr user)
     c = user;
     h = c.dump();
     send(cfd, h.c_str(), h.size(), 0);
-    
+    cout<<"ok";
     while (1)
     {
       string s;
-      cout<<"ok";
       user.choice = "chat_sb";
       cin>>s;
       time_t t;
@@ -695,25 +676,14 @@ void Shield_fri(jjjson::usr user)
 }
 
 void send_file(jjjson::usr user)
-{ int sign;
-  char path[1000] ;
+{
+  string path;
   cout << "请输入文件地址" << endl;
   cin >> path;
-  for(int i=strlen(path)-1;i>=0;i--)
-  {
-    if(i=='/')
-    {
-      sign=i;
-      break;
-    }
-  }
-  for(int j=sign+1;j<strlen(path);j++)
-  {
-    user.filename+=path[j];
-  }
-
+  cout << "请输保存文件名" << endl;
+  cin >> user.filename;
   int fd;
-  if ((fd = open(path, O_RDONLY)) < 0)
+  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -723,7 +693,7 @@ void send_file(jjjson::usr user)
   int ret = 0;
   user.choice = "recv_file";
   struct stat st;
-  stat(path, &st);
+  stat(path.c_str(), &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
@@ -1177,11 +1147,11 @@ void *recv_chat_group(jjjson::usr arg)
   // tmp.choice = "recv_mes_gro";
   // json j = tmp;
   // string s = j.dump();
-  char buf[4096];
   // send(cfd, s.c_str(), s.size(), 0);
   while (1)
   {
 
+    char buf[4096];
     memset(buf, 0, 4096);
 
     int ret = recv(cfd, buf, 4096, 0);
@@ -1190,10 +1160,10 @@ void *recv_chat_group(jjjson::usr arg)
       cout << "gameover" << endl;
       break;
     }
-    else if((t.size()!=0&&strlen(buf)!=0))
-    { 
+    else
+    {
       string t(buf);
-      cout<<"khj--"<<t<<endl;
+      // cout<<"khj--"<<t<<endl;
       json j = json::parse(t);
       auto q = j.get<jjjson::Gro_chat>();
       for (auto it = q.unread_mes.begin(); it != q.unread_mes.end(); it++)
@@ -1206,8 +1176,6 @@ void *recv_chat_group(jjjson::usr arg)
       }
     }
   }
-  sleep(1);
- 
   return NULL;
 }
 
@@ -1248,18 +1216,15 @@ void chat_group(jjjson::usr user)
   {
     pthread_t tid;
     thread recvv(recv_chat_group, user);
-     user.choice = "offline_mes_gro"; //获取离线消息
-     json k = user;
-     string l = k.dump();
-     //string l;
+    //  user.choice = "offline_mes_gro"; //获取离线消息
+    //  json k = user;
+    //  string l = k.dump();
+    string l;
      send(cfd, l.c_str(), l.size(), 0);
-
-     sleep(1);
     user.choice = "chat_group"; //先唤醒聊天状态
     user.mes_fri = "";
     json j = user;
     l = j.dump();
-
     send(cfd, l.c_str(), l.size(), 0);
     while (1)
     {
@@ -1297,27 +1262,14 @@ void chat_group(jjjson::usr user)
 }
 
 void send_file_gro(jjjson::usr user)
-{ int cnt=0;
-  char path[1000],name[200];
+{
+  string path;
   cout << "请输入文件地址" << endl;
   cin >> path;
-  int sign=0;
-    for(int i=strlen(path)-1;i>=0;i--)
-  {
-    if(path[i]=='/')
-    {
-      sign=i;
-      break;
-    }
-  }
-
-for(int j=sign+1;j<strlen(path);j++)
- {
-    name[cnt++]=path[j];
- }
- user.filename=name;
+  cout << "请输保存文件名" << endl;
+  cin >> user.filename;
   int fd;
-  if ((fd = open(path, O_RDONLY)) < 0)
+  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
   {
     cout << "open error" << endl;
     return;
@@ -1327,32 +1279,31 @@ for(int j=sign+1;j<strlen(path);j++)
   int ret = 0;
   user.choice = "recv_file_gro";
   struct stat st;
-  stat(path, &st);
+  stat(path.c_str(), &st);
   user.id = st.st_size;
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
 
-  long retw = 0, sum;
+  long retw = 0, sum=0;
   char x[4096];
   memset(x, 0, 4096);
   sleep(1);
   while (1)
   {
-    ret = read(fd, x, 4095);
-
-    x[ret] = '\0';
-
-    sleep(0.01);
+    ret = read(fd, x, 4096);
+    sleep(0.1);
     retw = send(cfd, x, ret, 0);
     if (retw > 0)
       sum += retw;
+      
     memset(x, 0, 4096);
     if (ret > retw)
     {
       lseek(fd, sum, SEEK_SET);
     }
-
+    cout<<sum<<endl;
+    cout<<st.st_size<<endl;
     if (sum >= st.st_size)
     {
       break;
@@ -1466,6 +1417,7 @@ void Enter_group(jjjson::usr user)
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
   recv(cfd, f, 1, 0);
+  sleep(1);
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
@@ -1569,29 +1521,31 @@ void Group(jjjson::usr user)
     string s;
     json j;
     user.choice = "look_group";
-    j = user;
+   j = user;
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
+    sleep(1);
+    buf[strlen(buf)] = '\0';
     string t(buf);
-    j = json::parse(t);
-    auto tmp = j.get<jjjson::myGroup>();
-    cout << "*********群名       ********身份********" << endl;
-    for (auto it = tmp.mygroup.begin(); it != tmp.mygroup.end(); it++)
-    {
-      cout << "        " << *it << "              ";
-      if (tmp.status[*it] == 1)
-      {
-        cout << "owner" << endl;
-      }
+   j = json::parse(t);
+   auto tmp = j.get<jjjson::myGroup>();
+   cout << "*********群名       ********身份********" << endl;
+   for (auto it = tmp.mygroup.begin(); it != tmp.mygroup.end(); it++)
+   {
+     cout << "        " << *it << "              ";
+     if (tmp.status[*it] == 1)
+     {
+       cout << "owner" << endl;
+     }
       else if (tmp.status[*it] == 2)
+     {
+       cout << "manager" << endl;
+     }
+     else if (tmp.status[*it] == 3)
       {
-        cout << "manager" << endl;
-      }
-      else if (tmp.status[*it] == 3)
-      {
-        cout << "member" << endl;
-      }
+       cout << "member" << endl;
+     }
     }
 
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
