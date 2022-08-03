@@ -19,7 +19,7 @@ using namespace std;
 string last_choice;
 string last_path;
 int last_fd;
-long long last_len=0;
+long long last_len = 0;
 void Disband_group(jjjson::usr user);
 void Sign(jjjson::usr user)
 {
@@ -422,6 +422,53 @@ void Deal_friendreq(jjjson::usr user)
 }
 
 void Check_friend(jjjson::usr user)
+{
+    string value;
+    char f[1];
+    // cout<<"lala"<<user.friendname<<endl;
+    auto status = db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    if (!status.ok()) //没有此人
+    {
+        f[0] = '0';
+        send(user.fd, f, 1, 0);
+        return;
+    }
+    string s = "friend";
+    s += user.friendname;
+    status = db->Get(leveldb::ReadOptions(), s, &value);
+    json j = json::parse(value);
+    auto myfriend = j.get<jjjson::Friend>();
+
+    for (auto iter = myfriend.myfri.begin(); iter != myfriend.myfri.end(); iter++) //已是朋友
+    {
+        if (*iter == user.name)
+        {
+            f[0] = '3';
+            send(user.fd, f, 1, 0);
+            return;
+        }
+    }
+
+    for (auto iter = myfriend.request.begin(); iter != myfriend.request.end(); iter++) //发过请求
+    {
+        if (*iter == user.name)
+        {
+            f[0] = '2';
+            send(user.fd, f, 1, 0);
+            return;
+        }
+    }
+    if (f[0] != '0' && f[0] != '2' && f[0] != '3')
+    {
+        f[0] = '1';
+        send(user.fd, f, 1, 0);
+
+        // Add_friend(user);
+        return;
+    }
+}
+
+void add_friend(jjjson::usr user)
 {
     string value;
     char f[1];
@@ -1222,20 +1269,18 @@ void Offline_mes_gro(jjjson::usr user)
     s += user.group;
     s += user.name;
     db->Get(leveldb::ReadOptions(), s, &value);
-     j = json::parse(value);
+    j = json::parse(value);
     auto tmp = j.get<jjjson::Gro_chat>();
-    if(!tmp.unread_mes.empty())
+    if (!tmp.unread_mes.empty())
     {
-    send(user.fd, value.c_str(), value.size(), 0);
-    tmp.unread_mes.clear();
-    tmp.unread_t.clear();
-    j = tmp;
-    db->Delete(leveldb::WriteOptions(), s);
-    db->Put(leveldb::WriteOptions(), s, j.dump());
+        send(user.fd, value.c_str(), value.size(), 0);
+        tmp.unread_mes.clear();
+        tmp.unread_t.clear();
+        j = tmp;
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
     }
 }
-
-
 
 void Chat_group(jjjson::usr user)
 {
@@ -1264,10 +1309,11 @@ void Chat_group(jjjson::usr user)
         send(user.fd, buf.c_str(), buf.size(), 0);
         return;
     }
-    else if((user.mes_fri == ""))
-    {    cout<<"start"<<endl;
-         Offline_mes_gro(user);
-         return;
+    else if ((user.mes_fri == ""))
+    {
+        cout << "start" << endl;
+        Offline_mes_gro(user);
+        return;
     }
     string s = "group";
     string value;
@@ -1348,7 +1394,7 @@ void Offline_mes_fri(jjjson::usr user)
 {
     string value;
     json j;
-    string s=user.name;
+    string s = user.name;
     s += user.friendname;
     db->Get(leveldb::ReadOptions(), s, &value);
     send(user.fd, value.c_str(), value.size(), 0);
@@ -1371,13 +1417,13 @@ void Check_group_history(jjjson::usr user)
     send(user.fd, value.c_str(), value.size(), 0);
 }
 
-void * R_file(void *arg)
+void *R_file(void *arg)
 {
     pthread_detach(pthread_self());
     char buf[4096];
     long long tmplen = 0;
-    long long  ret=0;
-    long long ret2=0;
+    long long ret = 0;
+    long long ret2 = 0;
     memset(buf, 0, 4096);
     cout << last_path << endl;
     int fd = open(last_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -1421,7 +1467,7 @@ void Recv_file_fri(jjjson::usr user)
     last_choice = "recv_file_fri";
     last_fd = user.fd;
     last_len = user.id;
-    
+
     string value;
     json j;
     string s = user.friendname;
@@ -1456,7 +1502,7 @@ void Recv_file_fri(jjjson::usr user)
 
 void Send_file_fri(jjjson::usr user)
 {
-    long long  ret = 0, sum = 0;
+    long long ret = 0, sum = 0;
     long long retw = 0;
     string path = "/home/chenzhenxxx/chatroom/" + user.filename;
     int fd;
@@ -1584,7 +1630,7 @@ void Send_file_gro(jjjson ::usr user)
         cout << "open error" << endl;
         return;
     }
-    long long ret = 0,sum=0,retw=0;
+    long long ret = 0, sum = 0, retw = 0;
     char x[4096];
     memset(x, 0, 4096);
     struct stat st;
@@ -1646,25 +1692,31 @@ void Send_file_gro(jjjson ::usr user)
     close(fd);
 }
 
-void *Inform(jjjson::usr user)
-{ // pthread_detach(pthread_self());
-  // jjjson::usr user=*(jjjson::usr *)arg;
-   while(1)
-  {  sleep(2);
+void *Inform(void *arg)
+{
+    pthread_detach(pthread_self());
     string value;
-    auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
-    json j = json::parse(value);
-    auto tmp = j.get<jjjson::usr>();
-     if(!tmp.box.empty())
-     {
-    send(user.fd, value.c_str(), value.size(), 0);
-    tmp.box.clear();
-    j = tmp;
-    db->Delete(leveldb::WriteOptions(), user.name);
-    db->Put(leveldb::WriteOptions(), user.name, j.dump());
-    break;
+    json j;
+    string s;
+    jjjson::usr user = *(jjjson::usr *)arg;
+    while (1)
+    {
+       
+        string value;
+        auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
+        json j = json::parse(value);
+        auto tmp = j.get<jjjson::usr>();
+        if (!tmp.box.empty())
+        {  
+            send(user.fd, value.c_str(), value.size(), 0);
+            tmp.box.clear();
+            j = tmp;
+            db->Delete(leveldb::WriteOptions(), user.name);
+            db->Put(leveldb::WriteOptions(), user.name, j.dump());
+            break;
+        }
+       
     }
-     }
 }
 
 void *task(void *arg)
@@ -1677,13 +1729,13 @@ void *task(void *arg)
     }
     char buf[10000];
     memset(buf, 0, 10000);
-    int len = recv(tmpfd, buf, 9999, MSG_WAITALL);
+    int len = recv(tmpfd, buf, 9999, 0);
     buf[len] = '\0';
     // cout << "tes;t" << buf << endl;
     if (len == 0)
     {
-         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-        close(tmpfd);
+        //  epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+        // close(tmpfd);
     }
     else
     {
@@ -1697,6 +1749,11 @@ void *task(void *arg)
         {
             Sign(user);
         }
+        else if (tmp.choice.compare("quit") == 0)
+        {
+            //epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+            //close(tmpfd);
+        }
         else if (tmp.choice.compare("login") == 0)
         {
             Login(user);
@@ -1708,6 +1765,10 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline") == 0)
         {
             Offline(user);
+        }
+        else if (tmp.choice.compare("add_friend") == 0)
+        {
+            add_friend(user);
         }
         else if (tmp.choice.compare("check_friend") == 0)
         {
@@ -1772,9 +1833,11 @@ void *task(void *arg)
             send(user.fd, f, 1, 0);
         }
         else if (tmp.choice.compare("inform") == 0)
-        { // pthread_t ttid;
-            // pthread_create(&ttid,NULL,Inform,(void *)&user);
-            Inform(user);
+        {
+            pthread_t ttid;
+            cout<<"hello"<<endl;
+            // pthread_create(&ttid, NULL, Inform, (void *)&user);
+            Inform((void *)&user);
         }
 
         else if (tmp.choice.compare("delete_friend") == 0)

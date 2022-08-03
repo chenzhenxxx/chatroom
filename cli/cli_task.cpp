@@ -15,33 +15,32 @@ void *Inform(void *arg)
   connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));
 
   jjjson::usr u = *(jjjson::usr *)arg;
-  u.fd = ccfd;
-  u.choice = "inform";
-  j = u;
-  string s = j.dump();
   while (1)
   {
-    send(u.fd, s.c_str(), s.size(), 0);
-    int ret=recv(u.fd, buf, 4096, 0);
-    if(ret==0)
-    {
-      continue;
-    }
-    //cout<<ret<<endl;
-   // cout<<buf<<endl;
+    u.choice = "inform";
+    u.fd=ccfd;
+    j = u;
+    string s = j.dump();
+    send(ccfd, s.c_str(), s.size(), 0);
+
+    recv(ccfd,buf,4096,0);
+    cout<<"buf"<<buf<<endl;
     string t(buf);
-    memset(buf,0,4096);
-    j = json::parse(t);
-    auto tmp = j.get<jjjson::usr>();
-    for (auto it = tmp.box.begin(); it != tmp.box.end(); it++)
-    {
-      if (*it == "exit")
-      { cout<<"you already quit"<<endl;
-        close(ccfd);
-        return NULL;
+    j=json::parse(t);
+    auto i=j.get<jjjson::usr>();
+  
+      for(auto it=i.box.begin();it!=i.box.end();it++)
+      {
+        if(*it=="exit")
+        {
+          return NULL;
+        }
+        else
+        {
+          cout<<"***Inform::"<<*it<<endl;
+        }
       }
-      cout << "*****" << *it << endl;
-    }
+   memset(buf,0,4096);
   }
 }
 void Check(jjjson::usr user)
@@ -211,7 +210,7 @@ void Add_friend(jjjson::usr user)
     cout << "请勿添加自己！" << endl;
     return;
   }
-  user.choice = "check_friend";
+  user.choice = "add_friend";
   json j = user;
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -1710,7 +1709,6 @@ void login()
   string ifo = j.dump();
   char buf[1];
   user.answer = "";
-  user.box.clear();
   user.fd = 0;
   user.friendid = 0;
   user.friendname = "";
@@ -1771,6 +1769,11 @@ int login_menu()
     case 3:
       Find_pwd();
     case 4:
+      jjjson::usr u;
+      u.choice = "quit";
+      json j = u;
+      string s = j.dump();
+      send(cfd, s.c_str(), s.size(), 0);
       return -1;
       break;
     }
