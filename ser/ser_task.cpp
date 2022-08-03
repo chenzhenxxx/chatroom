@@ -283,12 +283,12 @@ void Offline(jjjson::usr user)
     auto tmp = k.get<jjjson::usr>();
     db->Delete(leveldb::WriteOptions(), user.name);
     tmp.status = 0;
+    tmp.box.push_back("exit");
     k = tmp;
     auto status = db->Put(leveldb::WriteOptions(), user.name, k.dump());
 
     db->Get(leveldb::ReadOptions(), user.name, &value);
     k = json::parse(value);
-    tmp = k.get<jjjson::usr>();
     // cout << "thjis" << tmp.status << endl;
 
     if (status.ok())
@@ -1649,21 +1649,22 @@ void Send_file_gro(jjjson ::usr user)
 void *Inform(jjjson::usr user)
 { // pthread_detach(pthread_self());
   // jjjson::usr user=*(jjjson::usr *)arg;
-  // while(1)
-  //{
+   while(1)
+  {  sleep(1);
     string value;
     auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
     json j = json::parse(value);
     auto tmp = j.get<jjjson::usr>();
-    // if(tmp.box.size()!=0&&!tmp.box.empty())
-    // {
+     if(!tmp.box.empty())
+     {
     send(user.fd, value.c_str(), value.size(), 0);
     tmp.box.clear();
     j = tmp;
     db->Delete(leveldb::WriteOptions(), user.name);
     db->Put(leveldb::WriteOptions(), user.name, j.dump());
-    //}
-    // }
+    break;
+    }
+     }
 }
 
 void *task(void *arg)
@@ -1681,8 +1682,8 @@ void *task(void *arg)
     // cout << "tes;t" << buf << endl;
     if (len == 0)
     {
-        // epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-        // close(tmpfd);
+         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+        close(tmpfd);
     }
     else
     {

@@ -3,33 +3,39 @@ int cfd;
 
 void *Inform(void *arg)
 {
-  pthread_detach(pthread_self());
-  jjjson ::usr u = *(jjjson::usr *)arg;
+  json j;
+  char buf[4096];
+  struct sockaddr_in ser;
+  int ccfd = socket(AF_INET, SOCK_STREAM, 0);
+  bzero(&ser, sizeof(ser));
+  ser.sin_family = AF_INET;
+  inet_pton(AF_INET, "192.168.30.111", &ser.sin_addr);
+  ser.sin_port = htons(PORT);
+  // // pthread_create(&tid,NULL,Recv,void *base)
+  connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));
+
+  jjjson::usr u = *(jjjson::usr *)arg;
+  u.fd = ccfd;
+  u.choice = "inform";
+  j = u;
+  string s = j.dump();
   while (1)
   {
-    u.choice = "inform";
-    json j = u;
-    string s = j.dump();
     send(u.fd, s.c_str(), s.size(), 0);
-    char buf[4096];
-    memset(buf, 0, 4096);
-    recv(u.fd, buf, 4096, 0);
-    sleep(1);
-    // if(strlen(buf)==0)
-    // continue;
-    string tmp(buf);
-
-    j = json::parse(tmp);
-    auto uu = j.get<jjjson::usr>();
-    if (uu.box.size() != 0)
+    int ret=recv(u.fd, buf, 4096, 0);
+    cout<<"buf"<<buf<<endl;
+    cout<<ret<<endl;
+    string t(buf);
+    j = json::parse(t);
+    auto tmp = j.get<jjjson::usr>();
+    for (auto it = tmp.box.begin(); it != tmp.box.end(); it++)
     {
-      cout << uu.box.size() << endl;
-      cout << "*********I N F O R M" << endl;
-      for (auto it = uu.box.begin(); it != uu.box.end(); it++)
-      {
-        cout << *it << endl;
+      if (*it == "exit")
+      { cout<<"he"<<endl;
+        close(ccfd);
+        return NULL;
       }
-      uu.box.clear();
+      cout << "*****" << *it << endl;
     }
   }
 }
@@ -56,8 +62,7 @@ void sign_up()
   user.choice = "sign";
   printf("请输入用户名！\n");
   cin >> user.name;
-  printf("请输入密码!\n");
-  cin >> user.pwd;
+  user.pwd = getpass("请输入密码!\n");
   printf("请设置密保问题！\n");
   cin >> user.question;
   printf("请设置密保答案！\n");
@@ -423,8 +428,8 @@ void send_file_fri(jjjson::usr user)
     x[ret] = '\0';
     // user.buf=x;
     // cout << x << endl;
-     cout << ret << endl;
-     cout << strlen(x) << endl;
+    cout << ret << endl;
+    cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
     sleep(0.01);
@@ -437,8 +442,8 @@ void send_file_fri(jjjson::usr user)
       lseek(fd, sum, SEEK_SET);
     }
     // sleep(1);
-    //cout << sum << endl;
-    //cout << st.st_size << endl;
+    // cout << sum << endl;
+    // cout << st.st_size << endl;
     if (sum >= st.st_size)
     {
       // sleep(1);
@@ -711,7 +716,7 @@ void send_file(jjjson::usr user)
   struct stat st;
   stat(path.c_str(), &st);
   user.id = st.st_size;
-  
+
   j = user;
   s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
@@ -1714,17 +1719,7 @@ void login()
   {
     cout << "login sucuess!" << endl;
     pthread_t t;
-    struct sockaddr_in ser;
-    int ccfd = socket(AF_INET, SOCK_STREAM, 0);
-    bzero(&ser, sizeof(ser));
-    ser.sin_family = AF_INET;
-    inet_pton(AF_INET, "192.168.30.111", &ser.sin_addr);
-    ser.sin_port = htons(PORT);
-    // pthread_create(&tid,NULL,Recv,void *base)
-    connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));
-    jjjson::usr he = user;
-    he.fd = ccfd;
-    pthread_create(&t, NULL, Inform, (void *)&he);
+    pthread_create(&t, NULL, Inform, (void *)&user);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)
