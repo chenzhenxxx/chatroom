@@ -23,7 +23,6 @@ void *Inform(void *arg)
   {
     send(u.fd, s.c_str(), s.size(), 0);
     int ret=recv(u.fd, buf, 4096, 0);
-    cout<<"buf"<<buf<<endl;
     cout<<ret<<endl;
     string t(buf);
     j = json::parse(t);
@@ -31,7 +30,7 @@ void *Inform(void *arg)
     for (auto it = tmp.box.begin(); it != tmp.box.end(); it++)
     {
       if (*it == "exit")
-      { cout<<"he"<<endl;
+      { cout<<"you already quit"<<endl;
         close(ccfd);
         return NULL;
       }
