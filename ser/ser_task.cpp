@@ -1650,7 +1650,7 @@ void *Inform(jjjson::usr user)
 { // pthread_detach(pthread_self());
   // jjjson::usr user=*(jjjson::usr *)arg;
    while(1)
-  {  sleep(1);
+  {  sleep(2);
     string value;
     auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
     json j = json::parse(value);

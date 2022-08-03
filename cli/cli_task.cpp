@@ -23,8 +23,14 @@ void *Inform(void *arg)
   {
     send(u.fd, s.c_str(), s.size(), 0);
     int ret=recv(u.fd, buf, 4096, 0);
-    cout<<ret<<endl;
+    if(ret==0)
+    {
+      continue;
+    }
+    //cout<<ret<<endl;
+   // cout<<buf<<endl;
     string t(buf);
+    memset(buf,0,4096);
     j = json::parse(t);
     auto tmp = j.get<jjjson::usr>();
     for (auto it = tmp.box.begin(); it != tmp.box.end(); it++)
@@ -1674,6 +1680,7 @@ int menu(jjjson::usr user)
       string ifo = j.dump();
       char buf[1];
       send(cfd, ifo.c_str(), ifo.size(), 0);
+      sleep(1);
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
       {
