@@ -1,6 +1,6 @@
 #include "ser_task.cpp"
 int main()
-{    //pthread_mutex_init(&mutexx,NULL);
+{ // pthread_mutex_init(&mutexx,NULL);
     struct sockaddr_in serveraddr;
     int listenfd;
     int len;
@@ -15,7 +15,7 @@ int main()
     serveraddr.sin_port = htons(PORT);
     bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
     listen(listenfd, 20);
-     epollfd = epoll_create(10);
+    epollfd = epoll_create(10);
     epoll_event ev;
     ev.events = EPOLLIN | EPOLLET;
     int flag = fcntl(listenfd, F_GETFL);
@@ -27,14 +27,14 @@ int main()
     options.create_if_missing = true;
 
     leveldb::Status status = leveldb::DB::Open(options, "chatroom", &db);
-    assert(status.ok());
+    //assert(status.ok());
 
     while (1)
     {
         epoll_event events[4096];
         memset(events, 0, 4096);
         int n = epoll_wait(epollfd, events, 4096, -1);
-        //printf("%d\n", n);
+        // printf("%d\n", n);
         if (n < 0)
         {
             // 被信号中断
@@ -68,13 +68,32 @@ int main()
                 }
 
                 else
-                {    tmpfd = events[i].data.fd;
-                    pthread_create(&tid,NULL,task,NULL);
+                {
+                    pthread_t ttid;
+                     char buf[10000];
+                     memset(buf, 0, 10000);
+                     tmpfd = events[i].data.fd;
+                     int len = recv(tmpfd, buf, 9999, 0);
+                     buf[len] = '\0';
+                    
+                     string s(buf);
+                     cout << "asd" << s << endl;
+                     json j = json::parse(s);
+                     jjjson::usr tmp = j.get<jjjson::usr>();
+                     tmp.fd = tmpfd;
+                     if (tmp.choice == "inform")
+                     {
+                         //Inform((void*)&tmp);
+                         pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                     }
+                     else
+                        pthread_create(&tid, NULL, task, (void *)&tmp);
+                      
                 }
             }
         }
     }
-    //pthread_mutex_destroy(&mutexx);
+    // pthread_mutex_destroy(&mutexx);
     delete db;
     close(listenfd);
 }

@@ -55,6 +55,14 @@ void Sign(jjjson::usr user)
         db->Put(leveldb::WriteOptions(), s, m.dump());
         db->Get(leveldb::ReadOptions(), s, &value);
         f[0] = '1';
+
+        s="mymessage";
+        s+=user.name;
+        jjjson::mymessage mes;
+        mes.mes.clear();
+        j=mes;
+        db->Put(leveldb::WriteOptions(),s,j.dump());
+
     }
 
     write(user.fd, f, 1);
@@ -312,18 +320,19 @@ void Add_friend(jjjson::usr user)
     j = fri;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
-
-    db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    
+    s="mymessage"+user.friendname;
+    db->Get(leveldb::ReadOptions(), s, &value);
     j = json::parse(value);
-    auto tmp = j.get<jjjson::usr>();
+    auto tmp = j.get<jjjson::mymessage>();
     char buf[4096];
     memset(buf, 0, sizeof(buf));
     sprintf(buf, "%s want to become your friend", user.name.c_str());
     string t(buf);
-    tmp.box.push_back(t);
+    tmp.mes.push_back(t);
     j = tmp;
-    db->Delete(leveldb::WriteOptions(), user.friendname);
-    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(),s, j.dump());
 }
 
 void Deal_friendreq(jjjson::usr user)
@@ -364,17 +373,18 @@ void Deal_friendreq(jjjson::usr user)
         tmp = j.dump();
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, tmp);
-
-        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+         
+         s="mymessage"+user.friendname;
+        db->Get(leveldb::ReadOptions(),s, &value);
         j = json::parse(value);
-        auto t = j.get<jjjson::usr>();
+        auto t = j.get<jjjson::mymessage>();
         char buf[4096];
         memset(buf, 0, sizeof(buf));
         sprintf(buf, "%s accept to become your friend", user.name.c_str());
-        t.box.push_back(buf);
+        t.mes.push_back(buf);
         j = t;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
 
         //创建两个朋友消息表
         s = user.name;
@@ -551,16 +561,17 @@ void Delete_fri(jjjson::usr user)
     j = tmp2;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
-
-    status = db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    
+    s="mymessage"+user.friendname;
+    status = db->Get(leveldb::ReadOptions(), s, &value);
     j = json::parse(value);
-    auto tmp3 = j.get<jjjson::usr>();
+    auto tmp3 = j.get<jjjson::mymessage>();
     char buf[4096];
     sprintf(buf, "%s delete you!", user.name.c_str());
-    tmp3.box.push_back(buf);
+    tmp3.mes.push_back(buf);
     j = tmp3;
-    db->Delete(leveldb::WriteOptions(), user.friendname);
-    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
     f[0] = '1';
     send(user.fd, f, 1, 0);
 }
@@ -657,10 +668,15 @@ void Chat_sb(jjjson::usr user)
         char buf[1000];
         sprintf(buf, "%s say to you : %s", user.name.c_str(), user.mes_fri.c_str());
         string t(buf);
-        i.box.push_back(t);
-        j = i;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        string dfg="mymessage"+user.friendname;string op;
+        db->Get(leveldb::ReadOptions(),dfg,&op);
+        j=json::parse(op);
+        auto hh=j.get<jjjson::mymessage>();
+
+        hh.mes.push_back(t);
+        j = hh;
+        db->Delete(leveldb::WriteOptions(), dfg);
+        db->Put(leveldb::WriteOptions(), dfg, j.dump());
         //pthread_mutex_unlock(&mutexx);
     }
     else
@@ -864,17 +880,17 @@ void Join_group(jjjson::usr user)
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
     for (auto it = tmp.manager.begin(); it != tmp.manager.end(); it++)
-    {
-        db->Get(leveldb::ReadOptions(), *it, &value); //放到消息列表
+    {   s="mymessage"+*it;
+        db->Get(leveldb::ReadOptions(), s, &value); //放到消息列表
         j = json::parse(value);
-        auto q = j.get<jjjson::usr>();
+        auto q = j.get<jjjson::mymessage>();
         char buf[4096];
         memset(buf, 0, sizeof(buf));
         sprintf(buf, "%s want to  enter %s", user.name.c_str(), user.group.c_str());
-        q.box.push_back(buf);
+        q.mes.push_back(buf);
         j = q;
-        db->Delete(leveldb::WriteOptions(), *it);
-        db->Put(leveldb::WriteOptions(), *it, j.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
     }
 }
 
@@ -914,17 +930,18 @@ void Deal_group_req(jjjson::usr user)
         j = t;
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, j.dump());
-
-        db->Get(leveldb::ReadOptions(), user.friendname, &value); //放到消息列表
+        
+        s="mymessage"+user.friendname;
+        db->Get(leveldb::ReadOptions(), s, &value); //放到消息列表
         j = json::parse(value);
-        auto q = j.get<jjjson::usr>();
+        auto q = j.get<jjjson::mymessage>();
         char buf[4096];
         memset(buf, 0, sizeof(buf));
         sprintf(buf, "%s accept  you to enter %s", user.name.c_str(), user.group.c_str());
-        q.box.push_back(buf);
+        q.mes.push_back(buf);
         j = q;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        db->Delete(leveldb::WriteOptions(),s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
 
         s = "group_chat"; //建群聊表
         s += user.group;
@@ -998,17 +1015,18 @@ void Set_manager(jjjson::usr user)
         j = t;
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, j.dump());
-
+        
+         s="mymessage"+user.friendname;
         char buf[4096];
         memset(buf, 0, 4096);
-        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        db->Get(leveldb::ReadOptions(), s, &value);
         j = json::parse(value);
-        auto p = j.get<jjjson::usr>();
+        auto p = j.get<jjjson::mymessage>();
         sprintf(buf, "%s set you become manager!\n", user.name.c_str());
-        p.box.push_back(buf);
+        p.mes.push_back(buf);
         j = p;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
     }
     else if (user.choice == "canel_manager")
     {
@@ -1045,17 +1063,18 @@ void Set_manager(jjjson::usr user)
         j = t;
         db->Delete(leveldb::WriteOptions(), s);
         db->Put(leveldb::WriteOptions(), s, j.dump());
-
+        
+        s="mymessage"+user.friendname;
         char buf[4096];
         memset(buf, 0, 4096);
-        db->Get(leveldb::ReadOptions(), user.friendname, &value);
+        db->Get(leveldb::ReadOptions(), s, &value);
         j = json::parse(value);
-        auto p = j.get<jjjson::usr>();
+        auto p = j.get<jjjson::mymessage>();
         sprintf(buf, "%s canel your manager!\n", user.name.c_str());
-        p.box.push_back(buf);
+        p.mes.push_back(buf);
         j = p;
-        db->Delete(leveldb::WriteOptions(), user.friendname);
-        db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(),s, j.dump());
     }
 }
 
@@ -1098,15 +1117,16 @@ void Kick_sb(jjjson::usr user)
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
 
+    s="mymessage"+user.friendname;
     char buf[4096];
-    db->Get(leveldb::ReadOptions(), user.friendname, &value);
+    db->Get(leveldb::ReadOptions(), s, &value);
     j = json::parse(value);
-    auto t = j.get<jjjson::usr>();
+    auto t = j.get<jjjson::mymessage>();
     sprintf(buf, "%s already kick you from group : %s", user.name.c_str(), user.group.c_str());
-    t.box.push_back(buf);
+    t.mes.push_back(buf);
     j = t;
-    db->Delete(leveldb::WriteOptions(), user.friendname);
-    db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+    db->Delete(leveldb::WriteOptions(), s);
+    db->Put(leveldb::WriteOptions(), s, j.dump());
 }
 
 void Disband_group(jjjson::usr user)
@@ -1140,15 +1160,16 @@ void Disband_group(jjjson::usr user)
         db->Delete(leveldb::WriteOptions(), t);
         k = tt;
         db->Put(leveldb::WriteOptions(), t, k.dump());
-        db->Get(leveldb::ReadOptions(), *it, &v);
+        s="mymessage"+*it;
+        db->Get(leveldb::ReadOptions(), s, &v);
         k = json::parse(v);
-        auto y = k.get<jjjson::usr>();
+        auto y = k.get<jjjson::mymessage>();
         char buf[4096];
         sprintf(buf, "the group :%s 已经被群主%s解散", user.group.c_str(), user.name.c_str());
-        y.box.push_back(buf);
+        y.mes.push_back(buf);
         k = y;
-        db->Delete(leveldb::WriteOptions(), *it);
-        db->Put(leveldb::WriteOptions(), *it, k.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, k.dump());
     }
 
     db->Delete(leveldb::WriteOptions(), s); //删群
@@ -1375,16 +1396,16 @@ void Chat_group(jjjson::usr user)
             db->Put(leveldb::WriteOptions(), ss, j.dump());
         }
         else
-        {
-            db->Get(leveldb::ReadOptions(), *it, &value);
+        {   s="mymessage"+*it;
+            db->Get(leveldb::ReadOptions(), s, &value);
             j = json::parse(value);
-            auto c = j.get<jjjson::usr>();
+            auto c = j.get<jjjson::mymessage>();
             char buf[1000];
             sprintf(buf, "%s send a message from group:%s : %s", user.name.c_str(), user.group.c_str(), user.mes_fri.c_str());
-            c.box.push_back(buf);
+            c.mes.push_back(buf);
             j = c;
-            db->Delete(leveldb::WriteOptions(), *it);
-            db->Put(leveldb::WriteOptions(), *it, j.dump());
+            db->Delete(leveldb::WriteOptions(), s);
+            db->Put(leveldb::WriteOptions(), s, j.dump());
         }
     }
 }
@@ -1588,14 +1609,15 @@ void Recv_file_gro(jjjson::usr user)
     {
         if (*it == user.name)
             continue;
-        db->Get(leveldb::ReadOptions(), *it, &value);
+            s="mymessage"+*it;
+        db->Get(leveldb::ReadOptions(), s, &value);
         j = json::parse(value);
-        auto t = j.get<jjjson::usr>();
+        auto t = j.get<jjjson::mymessage>();
         sprintf(buf, "in group :%s :%s send a file: %s to you ", user.group.c_str(), user.name.c_str(), user.filename.c_str());
-        t.box.push_back(buf);
+        t.mes.push_back(buf);
         j = t;
-        db->Delete(leveldb::WriteOptions(), *it);
-        db->Put(leveldb::WriteOptions(), *it, j.dump());
+        db->Delete(leveldb::WriteOptions(), s);
+        db->Put(leveldb::WriteOptions(), s, j.dump());
 
         s = "group_chat";
         s += user.group;
@@ -1694,28 +1716,36 @@ void Send_file_gro(jjjson ::usr user)
 void *Inform(void *arg)
 {  pthread_detach(pthread_self());
    jjjson::usr user=*(jjjson::usr *)arg;
+   string s="mymessage"+user.name;
+   cout<<user.fd<<endl;
+   cout<<s<<endl;
+   
+    
     while (1)
-    {
-        sleep(1);
+    {    sleep(1);
         string value;
-        pthread_mutex_lock(&mutexx);
-        auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
+        value.clear();
+        
+        auto status = db->Get(leveldb::ReadOptions(),s, &value);
+        //cout<<"ha"<<value<<endl;
         json j = json::parse(value);
-        auto tmp = j.get<jjjson::usr>();
-        if (!tmp.box.empty())
-        {   
-            send(user.fd, value.c_str(), value.size(), 0);
-            tmp.box.clear();
+        auto tmp = j.get<jjjson::mymessage>();
+        
+        if (tmp.mes.size()!=0)
+        {  
+            //cout<<tmp.mes.size()<<endl;
+            //auto it=tmp.mes.begin();
+            //send(user.fd, (*it).c_str(),(*it).size(), 0);
+            //tmp.mes.erase(tmp.mes.begin());
+            send(user.fd,value.c_str(),value.size(),0);
+            tmp.mes.clear();
             j = tmp;
-            db->Delete(leveldb::WriteOptions(), user.name);
-            db->Put(leveldb::WriteOptions(), user.name, j.dump());
-            pthread_mutex_unlock(&mutexx);
+            db->Delete(leveldb::WriteOptions(),s);
+            db->Put(leveldb::WriteOptions(), s, j.dump());
+            //break;
 
         }
-        else
-        {
-            pthread_mutex_unlock(&mutexx);
-        }
+        
     }
 }
 
@@ -1729,11 +1759,12 @@ void *task(void *arg)
     }
     char buf[4096];
     memset(buf, 0, 4096);
-    int len =0;
-    while((len=recv(tmpfd, buf, 4096, 0))<0);
-    cout<<len<<endl;
-    cout<<errno<<endl;
-    cout<<buf<<endl;
+    //int len =0;
+
+    //while((len=recv(tmpfd, buf, 4096, 0))<=0);
+    //cout<<len<<endl;
+    //cout<<errno<<endl;
+    //cout<<buf<<endl;
     if(errno==11)
     {      cout<<"on"<<endl;
              errno=0;
@@ -1742,18 +1773,18 @@ void *task(void *arg)
 
     //buf[len] = '\0';
     // cout << "tes;t" << buf << endl;
-    if (len == 0)
-    {   cout<<"oyeah!"<<endl;
+    //if (len == 0)
+    //{   cout<<"oyeah!"<<endl;
         //  epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
         // close(tmpfd);
-    }
-    else
+    //}
+    //else
     {
-        string s(buf);
+        //string s(buf);
         //cout << s << endl;
-        json t = json::parse(s);
+        //json t = json::parse(s);
        // cout<<"1"<<endl;
-        jjjson::usr user = t.get<jjjson::usr>();
+        jjjson::usr user = *(jjjson::usr *)arg;
         user.fd = tmpfd;
         jjjson::usr tmp = user;
         // cout << user.mes_fri << endl;
@@ -1776,6 +1807,9 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline") == 0)
         {
             Offline(user);
+            epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+            close(tmpfd);
+
         }
         else if (tmp.choice.compare("check_friend") == 0)
         {
@@ -1839,11 +1873,11 @@ void *task(void *arg)
             }
             send(user.fd, f, 1, 0);
         }
-        else if (tmp.choice.compare("inform") == 0)
-        {  pthread_t ttid;
-            pthread_create(&ttid,NULL,Inform,(void *)&user);
+        //else if (tmp.choice.compare("inform") == 0)
+        //{  pthread_t ttid;
+            //pthread_create(&ttid,NULL,Inform,(void *)&user);
             //Inform(user);
-        }
+        //}
 
         else if (tmp.choice.compare("delete_friend") == 0)
         {
@@ -2007,15 +2041,17 @@ void *task(void *arg)
             string value;
             string s;
             char buf[1024];
-            db->Get(leveldb::ReadOptions(), user.friendname, &value);
+            memset(buf,0,1024);
+            s="mymessage"+user.friendname;
+            db->Get(leveldb::ReadOptions(), s, &value);
             j = json::parse(value);
-            auto tmp = j.get<jjjson::usr>();
+            auto tmp = j.get<jjjson::mymessage>();
             sprintf(buf, "%s send a file: %s to you", user.name.c_str(), user.filename.c_str());
             string t(buf);
-            tmp.box.push_back(t);
+            tmp.mes.push_back(t);
             j = tmp;
-            db->Delete(leveldb::WriteOptions(), user.friendname);
-            db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+            db->Delete(leveldb::WriteOptions(), s);
+            db->Put(leveldb::WriteOptions(), s, j.dump());
 
             Recv_file_fri(user);
         }

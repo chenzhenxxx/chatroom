@@ -3,8 +3,10 @@ int cfd;
 
 void *Inform(void *arg)
 {
+  pthread_detach(pthread_self());
   json j;
-  char buf[50000];
+  int ret = 0;
+  char buf[4096];
   struct sockaddr_in ser;
   int ccfd = socket(AF_INET, SOCK_STREAM, 0);
   bzero(&ser, sizeof(ser));
@@ -19,30 +21,37 @@ void *Inform(void *arg)
   u.choice = "inform";
   j = u;
   string s = j.dump();
+  json k;
+  string p;
   send(u.fd, s.c_str(), s.size(), 0);
   while (1)
   {
-    int ret=recv(u.fd, buf, 50000, 0);
-    if(ret==0)
+    memset(buf, 0, 4096);
+    while ((ret = recv(u.fd, buf, 4096, 0)) <= 0)
+      ;
+    // cout<<"lll:::"<<buf<<endl;
+
+    cout << ret << endl;
+    if (strcmp(buf, "exit") == 0)
     {
-      continue;
+      cout << "you are quit" << endl;
+      close(ccfd);
+      return NULL;
     }
-    //cout<<ret<<endl;
-    //cout<<buf<<endl;
-    string t(buf);
-    memset(buf,0,50000);
-    j = json::parse(t);
-    //cout<<"1"<<endl;
-    auto tmp = j.get<jjjson::usr>();
-    for (auto it = tmp.box.begin(); it != tmp.box.end(); it++)
+    k = json::parse(buf);
+    auto q = k.get<jjjson::mymessage>();
+    for (auto it = q.mes.begin(); it != q.mes.end(); it++)
     {
       if (*it == "exit")
-      { cout<<"you already quit"<<endl;
+      {
+        cout << "you are quit" << endl;
         close(ccfd);
         return NULL;
       }
-      cout << "*****" << *it << endl;
+      cout << "*****inform::" << *it << endl;
     }
+
+    // cout << "this:" << buf << endl;
   }
 }
 void Check(jjjson::usr user)
@@ -780,11 +789,13 @@ void Friend(jjjson::usr user)
     s = tmpfri;
     // printf("111\n");
     // cout << "this" << s << endl;
+    //````````````````````````````````````````````````````
     auto m = json::parse(s);
 
     auto fri = m.get<jjjson::Friend>();
     for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
     {
+      //````````````````````````````````````````````````
       char f[1];
       memset(f, 0, 1);
       recv(cfd, f, 1, 0);

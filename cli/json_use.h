@@ -125,6 +125,10 @@ namespace jjjson
         vector<time_t> unread_t;
         vector<string> filename;
     };
+    class mymessage
+    {   public:
+        vector<string> mes;
+    };
 
 
 
@@ -214,6 +218,17 @@ namespace jjjson
         j.at("unread_mes").get_to(p.unread_mes);
         j.at("unread_t").get_to(p.unread_t);
         j.at("filename").get_to(p.filename);
+    }
+     void to_json(json &j,const mymessage &p)
+    {
+        j=json{{"mes",p.mes}};
+    }
+    void from_json(const json &j,mymessage &p)
+    {
+       
+        j.at("mes").get_to(p.mes);
+        
+
     }
 
    
