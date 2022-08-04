@@ -467,7 +467,6 @@ void Check_friend(jjjson::usr user)
         return;
     }
 }
-
 void add_friend(jjjson::usr user)
 {
     string value;
@@ -650,12 +649,11 @@ void Chat_sb(jjjson::usr user)
     j = t;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
-
     db->Get(leveldb::ReadOptions(), user.friendname, &value);
     j = json::parse(value);
     auto i = j.get<jjjson::usr>();
     if (i.friendname != user.name || i.choice != "chat_sb")
-    {
+    {   //pthread_mutex_lock(&mutexx);
         char buf[1000];
         sprintf(buf, "%s say to you : %s", user.name.c_str(), user.mes_fri.c_str());
         string t(buf);
@@ -663,6 +661,7 @@ void Chat_sb(jjjson::usr user)
         j = i;
         db->Delete(leveldb::WriteOptions(), user.friendname);
         db->Put(leveldb::WriteOptions(), user.friendname, j.dump());
+        //pthread_mutex_unlock(&mutexx);
     }
     else
     {
@@ -1693,29 +1692,30 @@ void Send_file_gro(jjjson ::usr user)
 }
 
 void *Inform(void *arg)
-{
-    pthread_detach(pthread_self());
-    string value;
-    json j;
-    string s;
-    jjjson::usr user = *(jjjson::usr *)arg;
+{  pthread_detach(pthread_self());
+   jjjson::usr user=*(jjjson::usr *)arg;
     while (1)
     {
-       
+        sleep(1);
         string value;
+        pthread_mutex_lock(&mutexx);
         auto status = db->Get(leveldb::ReadOptions(), user.name, &value);
         json j = json::parse(value);
         auto tmp = j.get<jjjson::usr>();
         if (!tmp.box.empty())
-        {  
+        {   
             send(user.fd, value.c_str(), value.size(), 0);
             tmp.box.clear();
             j = tmp;
             db->Delete(leveldb::WriteOptions(), user.name);
             db->Put(leveldb::WriteOptions(), user.name, j.dump());
-            break;
+            pthread_mutex_unlock(&mutexx);
+
         }
-       
+        else
+        {
+            pthread_mutex_unlock(&mutexx);
+        }
     }
 }
 
@@ -1727,20 +1727,32 @@ void *task(void *arg)
     {
         return NULL;
     }
-    char buf[10000];
-    memset(buf, 0, 10000);
-    int len = recv(tmpfd, buf, 9999, 0);
-    buf[len] = '\0';
+    char buf[4096];
+    memset(buf, 0, 4096);
+    int len =0;
+    while((len=recv(tmpfd, buf, 4096, 0))<0);
+    cout<<len<<endl;
+    cout<<errno<<endl;
+    cout<<buf<<endl;
+    if(errno==11)
+    {      cout<<"on"<<endl;
+             errno=0;
+        return NULL;
+    }
+
+    //buf[len] = '\0';
     // cout << "tes;t" << buf << endl;
     if (len == 0)
-    {
+    {   cout<<"oyeah!"<<endl;
         //  epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
         // close(tmpfd);
     }
     else
     {
         string s(buf);
+        //cout << s << endl;
         json t = json::parse(s);
+       // cout<<"1"<<endl;
         jjjson::usr user = t.get<jjjson::usr>();
         user.fd = tmpfd;
         jjjson::usr tmp = user;
@@ -1749,14 +1761,13 @@ void *task(void *arg)
         {
             Sign(user);
         }
-        else if (tmp.choice.compare("quit") == 0)
-        {
-            //epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-            //close(tmpfd);
-        }
         else if (tmp.choice.compare("login") == 0)
         {
             Login(user);
+        }
+        else if(tmp.choice.compare("add_friend") == 0)
+        {
+            add_friend(user);
         }
         else if (tmp.choice.compare("settings") == 0)
         {
@@ -1765,10 +1776,6 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline") == 0)
         {
             Offline(user);
-        }
-        else if (tmp.choice.compare("add_friend") == 0)
-        {
-            add_friend(user);
         }
         else if (tmp.choice.compare("check_friend") == 0)
         {
@@ -1833,11 +1840,9 @@ void *task(void *arg)
             send(user.fd, f, 1, 0);
         }
         else if (tmp.choice.compare("inform") == 0)
-        {
-            pthread_t ttid;
-            cout<<"hello"<<endl;
-            // pthread_create(&ttid, NULL, Inform, (void *)&user);
-            Inform((void *)&user);
+        {  pthread_t ttid;
+            pthread_create(&ttid,NULL,Inform,(void *)&user);
+            //Inform(user);
         }
 
         else if (tmp.choice.compare("delete_friend") == 0)
@@ -1986,6 +1991,7 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline_mes_gro") == 0)
         {
             Offline_mes_gro(user);
+            
         }
         else if (tmp.choice.compare("offline_mes_fri") == 0)
         {
