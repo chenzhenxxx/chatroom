@@ -447,7 +447,7 @@ void send_file_fri(jjjson::usr user)
     cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
-    sleep(0.01);
+    sleep(0.1);
     retw = send(cfd, x, ret, 0);
     if (retw > 0)
       sum += retw;
@@ -457,8 +457,8 @@ void send_file_fri(jjjson::usr user)
       lseek(fd, sum, SEEK_SET);
     }
     // sleep(1);
-    // cout << sum << endl;
-    // cout << st.st_size << endl;
+     cout << sum << endl;
+     cout << st.st_size << endl;
     if (sum >= st.st_size)
     {
       // sleep(1);
@@ -1692,15 +1692,17 @@ int menu(jjjson::usr user)
       string ifo = j.dump();
       char buf[1];
       send(cfd, ifo.c_str(), ifo.size(), 0);
-      sleep(1);
+     
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
       {
         cout << "退出成功！\n";
       }
-      system("clear");
-      return -1;
-
+      break;
+      //system("clear");
+    }
+    if(select==6)
+    {
       break;
     }
   }
@@ -1782,8 +1784,12 @@ int login_menu()
       break;
     case 3:
       Find_pwd();
+      break;
     case 4:
-      return -1;
+      break;
+    }
+    if(select==4)
+    {
       break;
     }
   }
