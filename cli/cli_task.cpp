@@ -41,17 +41,17 @@ void *Inform(void *arg)
     //auto q = k.get<jjjson::mymessage>();
     //for (auto it = q.mes.begin(); it != q.mes.end(); it++)
     //{
-     // if (*it == "exit")
-     // {
+     //if (*it == "exit")
+     //{
       //  cout << "you are quit" << endl;
-      //  close(ccfd);
-      //  return NULL;
-     // }
-      cout << "*****inform::" << buf<< endl;
-    }
+       // close(ccfd);
+       // return NULL;
+      //}
+      //cout << "*****inform::" << *it<< endl;
+    //}
 
-    // cout << "this:" << buf << endl;
-  //}
+     cout << "this:" << buf << endl;
+  }
 }
 void Check(jjjson::usr user)
 {
@@ -649,6 +649,7 @@ void Chat_sb(jjjson::usr user)
       json j = user;
       string l = j.dump();
       send(cfd, l.c_str(), l.size(), 0);
+      sleep(0.02);
     }
     recvv.join();
   }
@@ -845,6 +846,7 @@ void Friend(jjjson::usr user)
       system("clear");
       return;
     }
+    sleep(0.2);
   }
 }
 

@@ -18,7 +18,7 @@ int main(int argc,char **argv)
      serveraddr.sin_port=htons(PORT);
      //pthread_create(&tid,NULL,Recv,void *base)
      connect(cfd,(struct sockaddr *)&serveraddr,sizeof(serveraddr)); //将cfd的主动socket连接到由serveraddr指定的监听socket；
-     
+     cout<<"cfd"<<cfd<<endl;
      
         login_menu();     
       close(cfd);

@@ -623,7 +623,7 @@ void Chat_sb(jjjson::usr user)
     // cout << "Jj" << j << endl;
     string h;
     h = user.name + " :" + user.mes_fri;
-    if (tmp.history.size() > 50) // 超过50条消息就把前面的删了
+    if (tmp.history.size() > 20) // 超过50条消息就把前面的删了
     {
         tmp.history.erase(tmp.history.begin());
         tmp.history.push_back(h);
@@ -651,7 +651,7 @@ void Chat_sb(jjjson::usr user)
     db->Get(leveldb::ReadOptions(), s, &value); //放到自己的消息记录
     j = json::parse(value);
     auto t = j.get<jjjson::Fri_chat>();
-    if (t.history.size() > 50) // 超过50条消息就把前面的删了
+    if (t.history.size() > 20) // 超过50条消息就把前面的删了
     {
         t.history.erase(t.history.begin());
         t.history.push_back(h);
@@ -670,8 +670,8 @@ void Chat_sb(jjjson::usr user)
     j = json::parse(value);
     auto i = j.get<jjjson::usr>();
     if (i.friendname != user.name || i.choice != "chat_sb")
-    {  pthread_mutex_lock(&mutexx);
-        char buf[1000];
+    {   pthread_mutex_lock(&mutexx);
+        char buf[200];
         sprintf(buf, "%s say to you : %s", user.name.c_str(), user.mes_fri.c_str());
         string t(buf);
         string dfg = "mymessage" + user.friendname;
