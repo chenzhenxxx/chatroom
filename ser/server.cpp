@@ -27,7 +27,7 @@ int main()
     options.create_if_missing = true;
 
     leveldb::Status status = leveldb::DB::Open(options, "chatroom", &db);
-    //assert(status.ok());
+    // assert(status.ok());
 
     while (1)
     {
@@ -70,25 +70,34 @@ int main()
                 else
                 {
                     pthread_t ttid;
-                     char buf[10000];
-                     memset(buf, 0, 10000);
-                     tmpfd = events[i].data.fd;
-                     int len = recv(tmpfd, buf, 9999, 0);
-                     buf[len] = '\0';
-                    
-                     string s(buf);
-                     cout << "asd" << s << endl;
-                     json j = json::parse(s);
-                     jjjson::usr tmp = j.get<jjjson::usr>();
-                     tmp.fd = tmpfd;
-                     if (tmp.choice == "inform")
-                     {
-                         //Inform((void*)&tmp);
-                         pthread_create(&ttid, NULL, Inform, (void *)&tmp);
-                     }
-                     else
+                    if (last_choice == "recv_file_fri" || last_choice == "recv_file_gro")
+                    {
+                        continue;
+                    }
+                    char buf[10000];
+                    memset(buf, 0, 10000);
+                    tmpfd = events[i].data.fd;
+                    int len = recv(tmpfd, buf, 9999, 0);
+                    if (len == 0)
+                    {
+                        epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
+                        close(tmpfd);
+                        continue;
+                    }
+                    buf[len] = '\0';
+
+                    string s(buf);
+                    cout << "asd" << s << endl;
+                    json j = json::parse(s);
+                    jjjson::usr tmp = j.get<jjjson::usr>();
+                    tmp.fd = tmpfd;
+                    if (tmp.choice == "inform")
+                    {
+                        // Inform((void*)&tmp);
+                        pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                    }
+                    else
                         pthread_create(&tid, NULL, task, (void *)&tmp);
-                      
                 }
             }
         }

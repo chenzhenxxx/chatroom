@@ -447,7 +447,7 @@ void send_file_fri(jjjson::usr user)
     cout << strlen(x) << endl;
     // j=user;
     // s=j.dump();
-    sleep(0.1);
+    sleep(0.01);
     retw = send(cfd, x, ret, 0);
     if (retw > 0)
       sum += retw;
