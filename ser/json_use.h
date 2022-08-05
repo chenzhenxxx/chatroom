@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include<pthread.h>
 #include <string>
+#include<netinet/tcp.h>
 #include<fcntl.h>
 #include<sys/types.h>
 #include <sys/socket.h>
@@ -56,7 +57,6 @@ using json = nlohmann::json;
 int tmpfd;
 int epollfd;
 pthread_t tid;
-pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr

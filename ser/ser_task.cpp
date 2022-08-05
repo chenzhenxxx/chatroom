@@ -18,6 +18,7 @@
 using namespace std;
 string last_choice;
 string last_path;
+pthread_mutex_t mutexx;
 int last_fd;
 long long last_len = 0;
 void Disband_group(jjjson::usr user);
@@ -669,7 +670,7 @@ void Chat_sb(jjjson::usr user)
     j = json::parse(value);
     auto i = j.get<jjjson::usr>();
     if (i.friendname != user.name || i.choice != "chat_sb")
-    { // pthread_mutex_lock(&mutexx);
+    {  pthread_mutex_lock(&mutexx);
         char buf[1000];
         sprintf(buf, "%s say to you : %s", user.name.c_str(), user.mes_fri.c_str());
         string t(buf);
@@ -683,7 +684,7 @@ void Chat_sb(jjjson::usr user)
         j = hh;
         db->Delete(leveldb::WriteOptions(), dfg);
         db->Put(leveldb::WriteOptions(), dfg, j.dump());
-        // pthread_mutex_unlock(&mutexx);
+         pthread_mutex_unlock(&mutexx);
     }
     else
     {
@@ -1110,6 +1111,7 @@ void Kick_sb(jjjson::usr user)
     s = "mygroup";
     s += user.friendname;
     db->Get(leveldb::ReadOptions(), s, &value);
+    cout<<"mygroup"<<value<<endl;
     j = json::parse(value);
     auto tq = j.get<jjjson::myGroup>();
     for (auto it = tq.mygroup.begin(); it != tq.mygroup.end(); it++)
@@ -1403,7 +1405,7 @@ void Chat_group(jjjson::usr user)
             db->Put(leveldb::WriteOptions(), ss, j.dump());
         }
         else
-        {
+        {   pthread_mutex_lock(&mutexx);
             s = "mymessage" + *it;
             db->Get(leveldb::ReadOptions(), s, &value);
             j = json::parse(value);
@@ -1414,6 +1416,7 @@ void Chat_group(jjjson::usr user)
             j = c;
             db->Delete(leveldb::WriteOptions(), s);
             db->Put(leveldb::WriteOptions(), s, j.dump());
+            pthread_mutex_unlock(&mutexx);
         }
     }
 }
@@ -1731,10 +1734,10 @@ void *Inform(void *arg)
 
     while (1)
     {
-        sleep(1);
+        sleep(0.5);
         string value;
         value.clear();
-
+        pthread_mutex_lock(&mutexx);
         auto status = db->Get(leveldb::ReadOptions(), s, &value);
         // cout<<"ha"<<value<<endl;
         json j = json::parse(value);
@@ -1743,16 +1746,17 @@ void *Inform(void *arg)
         if (tmp.mes.size() != 0)
         {
             // cout<<tmp.mes.size()<<endl;
-            // auto it=tmp.mes.begin();
-            // send(user.fd, (*it).c_str(),(*it).size(), 0);
-            // tmp.mes.erase(tmp.mes.begin());
-            send(user.fd, value.c_str(), value.size(), 0);
-            tmp.mes.clear();
-            j = tmp;
-            db->Delete(leveldb::WriteOptions(), s);
-            db->Put(leveldb::WriteOptions(), s, j.dump());
+             auto it=tmp.mes.begin();
+             send(user.fd, (*it).c_str(),(*it).size(), 0);
+             tmp.mes.erase(tmp.mes.begin());
+               //send(user.fd, value.c_str(), value.size(), 0);
+             //tmp.mes.clear();
+             j = tmp;
+             db->Delete(leveldb::WriteOptions(), s);
+             db->Put(leveldb::WriteOptions(), s, j.dump());
             // break;
         }
+        pthread_mutex_unlock(&mutexx);
     }
 }
 
@@ -1815,8 +1819,6 @@ void *task(void *arg)
         else if (tmp.choice.compare("offline") == 0)
         {
             Offline(user);
-            epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
-            close(tmpfd);
         }
         else if (tmp.choice.compare("check_friend") == 0)
         {

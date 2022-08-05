@@ -27,8 +27,7 @@ void *Inform(void *arg)
   while (1)
   {
     memset(buf, 0, 4096);
-    while ((ret = recv(u.fd, buf, 4096, 0)) <= 0)
-      ;
+    while ((ret = recv(u.fd, buf, 4096, 0)) <= 0);
     // cout<<"lll:::"<<buf<<endl;
 
     cout << ret << endl;
@@ -38,21 +37,21 @@ void *Inform(void *arg)
       close(ccfd);
       return NULL;
     }
-    k = json::parse(buf);
-    auto q = k.get<jjjson::mymessage>();
-    for (auto it = q.mes.begin(); it != q.mes.end(); it++)
-    {
-      if (*it == "exit")
-      {
-        cout << "you are quit" << endl;
-        close(ccfd);
-        return NULL;
-      }
-      cout << "*****inform::" << *it << endl;
+    //k = json::parse(buf);
+    //auto q = k.get<jjjson::mymessage>();
+    //for (auto it = q.mes.begin(); it != q.mes.end(); it++)
+    //{
+     // if (*it == "exit")
+     // {
+      //  cout << "you are quit" << endl;
+      //  close(ccfd);
+      //  return NULL;
+     // }
+      cout << "*****inform::" << buf<< endl;
     }
 
     // cout << "this:" << buf << endl;
-  }
+  //}
 }
 void Check(jjjson::usr user)
 {
@@ -457,8 +456,8 @@ void send_file_fri(jjjson::usr user)
       lseek(fd, sum, SEEK_SET);
     }
     // sleep(1);
-     cout << sum << endl;
-     cout << st.st_size << endl;
+    cout << sum << endl;
+    cout << st.st_size << endl;
     if (sum >= st.st_size)
     {
       // sleep(1);
@@ -1468,7 +1467,7 @@ void Enter_group(jjjson::usr user)
   string s = j.dump();
   send(cfd, s.c_str(), s.size(), 0);
   recv(cfd, f, 1, 0);
-  sleep(1);
+  //sleep(1);
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
@@ -1576,7 +1575,7 @@ void Group(jjjson::usr user)
     s = j.dump();
     send(cfd, s.c_str(), s.size(), 0);
     recv(cfd, buf, 4096, 0);
-    sleep(1);
+    //sleep(1);
     buf[strlen(buf)] = '\0';
     string t(buf);
     j = json::parse(t);
@@ -1657,25 +1656,23 @@ int menu(jjjson::usr user)
     printf("  ***********           4.查看通知               ***********  \n");
     printf(" ***********            5.注销账号                **********  \n");
     printf(" ***********            6.退出                      **********  \n");
-    int select;
-    scanf("%d", &select);
-    switch (select)
+    string select;
+    cin >> select;
+    if (select == "1")
     {
-    case 1:
       settings(user);
-      break;
+    }
 
-    case 2:
+    else if (select == "2")
+    {
       Friend(user);
-      break;
-
-    case 3:
+    }
+    else if (select == "3")
+    {
       Group(user);
-      break;
-    case 4:
-      // Inform(user);
-      break;
-    case 5:
+    }
+    else if (select == "5")
+    {
       if (Logout(user))
       {
         cout << "注销成功" << endl;
@@ -1683,27 +1680,28 @@ int menu(jjjson::usr user)
       }
       else
         cout << "注销失败" << endl;
-      break;
+    }
 
-    case 6:
+    else if (select == "6")
+    {
       user.choice = "offline";
       json j;
       j = user;
       string ifo = j.dump();
       char buf[1];
       send(cfd, ifo.c_str(), ifo.size(), 0);
-     
+
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
       {
         cout << "退出成功！\n";
       }
+      // system("clear");
       break;
-      //system("clear");
     }
-    if(select==6)
+    else
     {
-      break;
+      cout<<"请输入正确选项！"<<endl;
     }
   }
   return 0;
@@ -1788,7 +1786,7 @@ int login_menu()
     case 4:
       break;
     }
-    if(select==4)
+    if (select == 4)
     {
       break;
     }

@@ -2,6 +2,7 @@
 #define JSON_USE_H__
 #include <iostream>
 #include<iostream>
+#include<netinet/tcp.h>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -56,7 +57,6 @@ using json = nlohmann::json;
 int tmpfd;
 int epollfd;
 pthread_t tid;
-pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr

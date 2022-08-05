@@ -33,7 +33,7 @@ int main()
     {
         epoll_event events[4096];
         memset(events, 0, 4096);
-        int n = epoll_wait(epollfd, events, 4096, -1);
+        int n = epoll_wait(epollfd, events, 4096, 0);
         // printf("%d\n", n);
         if (n < 0)
         {
@@ -41,7 +41,7 @@ int main()
             if (errno == EINTR)
                 continue;
             // 出错,退出
-            break;
+            //break;
         }
         else if (n == 0)
         {
@@ -58,6 +58,18 @@ int main()
                     socklen_t cliaddrlen = sizeof(cliaddr);
                     int cfd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrlen);
                     cout << "first" << cfd << endl;
+                    // int on=1; //开启keepalive
+                    // setsockopt(cfd,SOL_SOCKET,SO_KEEPALIVE,&on,sizeof(on));
+                    // int val=3; //报文时间间隔
+                    // setsockopt(cfd, IPPROTO_TCP,TCP_KEEPIDLE, &val, sizeof(val));
+                    // int interval=1;//重发报文间隔
+                    // setsockopt(cfd,IPPROTO_TCP,TCP_KEEPINTVL,&interval,sizeof(interval));
+                    // int cnt=10;//重发次数
+                    // setsockopt(cfd,IPPROTO_TCP,TCP_KEEPCNT,&cnt,sizeof(cnt));
+    
+
+
+
                     epoll_event evv;
                     int flag = fcntl(cfd, F_GETFL);
                     flag |= O_NONBLOCK;
