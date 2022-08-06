@@ -80,35 +80,40 @@ int main()
                 }
 
                 else
-                {
+                {   if(last_choice=="recv_file_fri"||last_choice=="recv_file_gro")
+                    continue;
                     pthread_t ttid;
-                    if (last_choice == "recv_file_fri" || last_choice == "recv_file_gro")
-                    {
-                        continue;
-                    }
-                    char buf[10000];
-                    memset(buf, 0, 10000);
+                    char *buf;
                     tmpfd = events[i].data.fd;
-                    int len = recv(tmpfd, buf, 9999, 0);
+                    int len = recvMsg(tmpfd, &buf);
                     if (len == 0)
                     {
                         epoll_ctl(epollfd, EPOLL_CTL_DEL, tmpfd, NULL);
                         close(tmpfd);
                         continue;
                     }
-                    buf[len] = '\0';
-
-                    string s(buf);
+                    string s((buf));
+                    free(buf);
                     cout << "asd" << s << endl;
                     json j = json::parse(s);
                     jjjson::usr tmp = j.get<jjjson::usr>();
                     tmp.fd = tmpfd;
-                    if (tmp.choice == "inform")
-                    {
+                    //if (tmp.choice == "inform")
+                    //{
                         // Inform((void*)&tmp);
-                        pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                        //pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                   // }
+                    //else
+                     
+                    if(tmp.choice=="recv_file_fri")
+                    {
+                         Recv_file_fri(tmp);
                     }
-                    else
+                    else if(tmp.choice=="recv_file_gro")
+                    {
+                        Recv_file_gro(tmp);
+                    }
+                    else 
                         pthread_create(&tid, NULL, task, (void *)&tmp);
                 }
             }

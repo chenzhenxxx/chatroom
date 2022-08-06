@@ -1,12 +1,121 @@
 #include "json_use.h"
 int cfd;
 
+int readn(int fd, char *buf, int size)
+{
+  char *p = buf; //辅助指针记录位置
+  int count = size;
+  while (count > 0)
+  {
+    int len = recv(fd, p, count, 0);
+    if (len == -1)
+    {
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+      {
+        continue;
+      }
+      perror("recve");
+      return -1;
+    }
+    else if (len == 0)
+    {                      //发送端端开连接
+      return size - count; //返回总共读到的字节数
+    }
+    else
+    {
+      p += len;     //有效内存处继续接收数据
+      count -= len; //还有多少没有接收
+    }
+  }
+  return size;
+}
+//
+//单纯地接受数据
+int recvMsg(int cfd, char **msg)
+{
+  //第二个参数是一个传出参数
+  // char head[4];
+  int len = 0;
+  readn(cfd, (char *)&len, 4); //先读取前面4个字节数
+  int count = ntohl(len);      //网络字节序转换成主机字节序
+  printf("要接收的数据块的大小是:%d\n", count);
+  char *data = (char *)malloc(count + 1);
+  int length = readn(cfd, data, count);
+  if (length != count)
+  {
+    printf("接收数据失败\n");
+    printf("%d->%d    %d\n", cfd, length, count);
+    close(cfd);
+    free(data);
+    return -1;
+  }
+
+  data[count] = '\0';
+  printf("%s\n", data);
+  *msg = data;
+  return length;
+}
+
+//发送指定长度size的字符串
+int writen(int cfd, const char *msg, int size)
+{
+  const char *buf = msg;
+  int current = size;
+  while (current > 0)
+  {
+    int len = send(cfd, buf, size, 0);
+    //往对应的写缓冲区里面写内容，但是缓冲区内容有限
+    //返回实际发送的字节数
+    if (len == -1)
+    {
+      close(cfd);
+      return -1;
+    }
+    else if (len == 0)
+    {
+      continue; //重新发送
+    }
+    else
+    {
+      buf += len;     //指针偏移
+      current -= len; //剩余的字节数量
+    }
+  }
+  return size;
+}
+
+//发送数据
+int sendMsg(int cfd, std::string Msg, int len)
+{
+  if (cfd < 0 || Msg.size() < 0 || len <= 0)
+  {
+    return -1;
+  }
+  //将string类型的数据首先转化成指针类型
+  const char *msg = Msg.c_str();
+  char *data = (char *)malloc(len + 4);
+  int biglen = htonl(len);
+  memcpy(data, &biglen, 4);
+  // printf("%d", data[0]);
+  //内存拷贝，连续的4个字节数拷贝到内存中去
+  //这四个字节数是包头
+  // printf("cheng gong\n");
+  memcpy(data + 4, msg, len);
+  //将需要发送的内容进行拷贝
+  int ret = writen(cfd, data, len + 4);
+  if (ret == -1)
+  {
+    // perror("send\n");
+    close(cfd);
+  }
+  return ret;
+}
+
 void *Inform(void *arg)
 {
   pthread_detach(pthread_self());
   json j;
   int ret = 0;
-  char buf[4096];
   struct sockaddr_in ser;
   int ccfd = socket(AF_INET, SOCK_STREAM, 0);
   bzero(&ser, sizeof(ser));
@@ -23,48 +132,52 @@ void *Inform(void *arg)
   string s = j.dump();
   json k;
   string p;
-  send(u.fd, s.c_str(), s.size(), 0);
+  sendMsg(u.fd, s, s.size());
   while (1)
   {
-    memset(buf, 0, 4096);
-    while ((ret = recv(u.fd, buf, 4096, 0)) <= 0);
+    char *buf;
+    while ((ret = recvMsg(u.fd, &buf)) <= 0)
+      ;
     // cout<<"lll:::"<<buf<<endl;
 
     cout << ret << endl;
     if (strcmp(buf, "exit") == 0)
     {
       cout << "you are quit" << endl;
+      free(buf);
       close(ccfd);
       return NULL;
     }
-    //k = json::parse(buf);
-    //auto q = k.get<jjjson::mymessage>();
-    //for (auto it = q.mes.begin(); it != q.mes.end(); it++)
+    // k = json::parse(buf);
+    // auto q = k.get<jjjson::mymessage>();
+    // for (auto it = q.mes.begin(); it != q.mes.end(); it++)
     //{
-     //if (*it == "exit")
-     //{
-      //  cout << "you are quit" << endl;
-       // close(ccfd);
-       // return NULL;
-      //}
-      //cout << "*****inform::" << *it<< endl;
+    // if (*it == "exit")
+    //{
+    //   cout << "you are quit" << endl;
+    //  close(ccfd);
+    //  return NULL;
+    //}
+    // cout << "*****inform::" << *it<< endl;
     //}
 
-     cout << "this:" << buf << endl;
+    cout << "this:" << buf << endl;
+    free(buf);
   }
 }
 void Check(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   user.choice = "check";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (strcmp(f, "1") == 0)
   {
     cout << "有通知请注意查收！" << endl;
   }
+  free(f);
 }
 
 void sign_up()
@@ -91,7 +204,7 @@ void sign_up()
   string ifo = j.dump();
   char buf[1];
   memset(buf, 0, 1);
-  send(cfd, ifo.c_str(), ifo.size(), 0);
+  sendMsg(cfd, ifo, ifo.size());
   read(cfd, buf, 1);
   if (strcmp(buf, "1") == 0)
   {
@@ -145,7 +258,7 @@ void settings(jjjson::usr user)
       string ifo = j.dump();
       char buf[1];
       memset(buf, 0, 1);
-      send(cfd, ifo.c_str(), ifo.size(), 0);
+      sendMsg(cfd, ifo, ifo.size());
       read(cfd, buf, 1);
       if (strcmp(buf, "1") == 0)
       {
@@ -164,30 +277,32 @@ void Find_pwd()
 {
   json j;
   string s;
-  char f[1];
+  char *f;
   cout << "请输入要找回密码的账号" << endl;
   jjjson::usr user;
   cin >> user.friendname; //其实是偷懒为了方便，因为服务器只写了个看好友的
   user.name = user.friendname;
   user.choice = "check_friend";
-  char buf[4096];
   j = user;
   s = j.dump();
-  memset(buf, 0, 4096);
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] == '0')
   {
     cout << "账号不存在" << endl;
+    free(f);
     return;
   }
+  free(f);
+  char *buf;
   user.choice = "find_pwd";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 4096, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &buf);
 
   j = json::parse(buf);
+  free(buf);
   auto tmp = j.get<jjjson::usr>();
   cout << "Question:" << tmp.question << endl;
   cout << "请输入密保答案" << endl;
@@ -195,11 +310,11 @@ void Find_pwd()
   user.choice = "true_pwd";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-
-  memset(buf, 0, 4096);
-  recv(cfd, buf, 4096, 0);
-  j = json::parse(buf);
+  sendMsg(cfd, s, s.size());
+  char *bu;
+  recvMsg(cfd, &bu);
+  j = json::parse(bu);
+  free(bu);
   tmp = j.get<jjjson::usr>();
   if (tmp.pwd != "")
   {
@@ -223,9 +338,9 @@ void Add_friend(jjjson::usr user)
   user.choice = "add_friend";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  char f[1];
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  char *f;
+  recvMsg(cfd, &f);
   if (strcmp(f, "0") == 0)
   {
     cout << "此用户不存在！" << endl;
@@ -242,21 +357,22 @@ void Add_friend(jjjson::usr user)
   {
     cout << "已成功发送！" << endl;
   }
+  free(f);
 }
 void deal_req(jjjson::usr user)
 {
   while (1)
   {
 
-    char buf[4096];
-    memset(buf, 0, sizeof(buf));
+    char *buf;
     user.choice = "friend_req";
     json j = user;
     string s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
+    sendMsg(cfd, s, s.size());
+    recvMsg(cfd, &buf);
     buf[strlen(buf)] = '\0';
     string tmp(buf);
+    free(buf);
     j = json::parse(tmp);
 
     auto fri = j.get<jjjson::Friend>();
@@ -287,7 +403,7 @@ void deal_req(jjjson::usr user)
         user.friendname = s;
         json j = user;
         string s = j.dump();
-        send(cfd, s.c_str(), s.size(), 0);
+        sendMsg(cfd, s, s.size());
       }
       break;
     }
@@ -304,9 +420,9 @@ void Delete_friend(jjjson::usr user)
   user.choice = "check_friend";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  char f[1];
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  char *f;
+  recvMsg(cfd, &f);
   if (strcmp(f, "0") == 0)
   {
     cout << "此用户不存在！" << endl;
@@ -315,13 +431,15 @@ void Delete_friend(jjjson::usr user)
   {
     cout << "不是盆友！" << endl;
   }
+  free(f);
   user.choice = "delete_friend";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  memset(f, 0, sizeof(f));
-  recv(cfd, f, 1, 0);
-  if (strcmp(f, "1") == 0)
+  sendMsg(cfd, s, s.size());
+  char *ff;
+  recvMsg(cfd, &ff);
+  // cout<<"this:: "<<ff<<endl;
+  if (strcmp(ff, "1") == 0)
   {
     cout << "成功删除" << endl;
   }
@@ -329,6 +447,7 @@ void Delete_friend(jjjson::usr user)
   {
     cout << "删除失败！" << endl;
   }
+  free(ff);
 }
 
 void *recv_chat(jjjson::usr arg)
@@ -336,18 +455,19 @@ void *recv_chat(jjjson::usr arg)
   jjjson::usr tmp = arg;
   // tmp.choice = "recv_mes";
   json j = tmp;
-  char buf[4096];
+
   // string s = j.dump();
   //  send(cfd, s.c_str(), s.size(), 0);
   while (1)
   {
 
-    memset(buf, 0, 4096);
+    char *buf;
 
-    int ret = recv(cfd, buf, 4096, 0);
+    int ret = recvMsg(cfd, &buf);
 
     if ((strcmp(buf, "quit")) == 0)
     {
+      free(buf);
       // cout << "gameover" << endl;
       break;
     }
@@ -366,22 +486,23 @@ void *recv_chat(jjjson::usr arg)
         q.unread_t.erase(q.unread_t.begin());
       }
     }
+    free(buf);
   }
   return NULL;
 }
 
 void Check_history(jjjson::usr user)
 {
-  char buf[10000];
-  memset(buf, 0, 10000);
+  char *buf;
   user.choice = "check_history";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 10000, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &buf);
   buf[strlen(buf)] = '\0';
   // cout<<"dfs"<<buf<<endl;
   string t(buf);
+  free(buf);
   json k = json::parse(t);
   auto w = k.get<jjjson::Fri_chat>();
   for (auto it = w.history.begin(); it != w.history.end(); it++)
@@ -398,7 +519,7 @@ void send_file_fri(jjjson::usr user)
   memset(path, 0, 1000);
   memset(name, 0, 100);
   int cnt = 0;
-  cout << "请输入文件地址" << endl;
+  cout << "请输入文件地址:" << endl;
   cin >> path;
   int sign;
   for (int i = strlen(path) - 1; i >= 0; i--)
@@ -430,23 +551,15 @@ void send_file_fri(jjjson::usr user)
   user.id = st.st_size;
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
+  sendMsg(cfd, s, s.size());
   long long retw = 0, sum = 0;
   char x[4096];
   memset(x, 0, 4096);
-  sleep(1);
+
   while (1)
-  { // user.buf.clear();
-    ret = read(fd, x, 4095);
-    // cout << "1" << endl;
+  {
+    ret = read(fd, x, 4096);
     x[ret] = '\0';
-    // user.buf=x;
-    // cout << x << endl;
-    cout << ret << endl;
-    cout << strlen(x) << endl;
-    // j=user;
-    // s=j.dump();
-    sleep(0.01);
     retw = send(cfd, x, ret, 0);
     if (retw > 0)
       sum += retw;
@@ -455,23 +568,14 @@ void send_file_fri(jjjson::usr user)
     {
       lseek(fd, sum, SEEK_SET);
     }
-    // sleep(1);
     cout << sum << endl;
     cout << st.st_size << endl;
     if (sum >= st.st_size)
     {
-      // sleep(1);
-      // char buf[5] = "over";
-      // send(cfd, buf, sizeof(buf), 0);
       break;
     }
-    // user.buf.clear();
   }
-  // sleep(1);
-  // char buf[5]="over";
-  // send(cfd,buf,4,0);
-  // sleep(1);
-  sleep(1);
+
   close(fd);
 }
 
@@ -484,13 +588,13 @@ void recv_file_fri(jjjson::usr user)
     string s;
     int flag = 0;
     user.choice = "check_file";
-    char buf[4096];
+    char *buf;
     j = user;
     s = j.dump();
-    memset(buf, 0, 4096);
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
+    sendMsg(cfd, s, s.size());
+    recvMsg(cfd, &buf);
     string t(buf);
+    free(buf);
     j = json::parse(t);
     auto x = j.get<jjjson::Fri_chat>();
     for (auto it = x.file.begin(); it != x.file.end(); it++)
@@ -526,41 +630,41 @@ void recv_file_fri(jjjson::usr user)
       continue;
     }
 
-    memset(buf, 0, 4096);
     long long size = 0;
     long long tmplen = 0;
     user.filename = q;
     user.choice = "file_size";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
-    string d(buf);
+    sendMsg(cfd, s, s.size());
+    char *bu;
+    recvMsg(cfd, &bu);
+    string d(bu);
+    free(bu);
     j = json::parse(d);
     auto tt = j.get<jjjson::usr>();
     size = tt.id;
-    sleep(1);
 
     user.choice = "send_file_fri";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
 
     long long ret = 0, ret2 = 0;
-    memset(buf, 0, 4096);
+    char b[4096];
+    memset(b, 0, 4096);
     while (1)
     {
-
-      ret2 = recv(cfd, buf, 4095, 0);
-      ret = write(fd, buf, ret2);
+      char b[4096];
+      ret2 = recv(cfd, b, 4096, 0);
+      ret = write(fd, b, ret2);
       if (ret > 0)
         tmplen += ret;
       if (tmplen >= size)
       {
         break;
       }
-
-      memset(buf, 0, 4096);
+      memset(b, 0, 4096);
     }
     close(fd);
   }
@@ -568,40 +672,44 @@ void recv_file_fri(jjjson::usr user)
 
 void Chat_sb(jjjson::usr user)
 {
-  char f[4096];
-  memset(f, 0, 4096);
+  char *f;
   cout << "请输入聊天对象" << endl;
   cin >> user.friendname;
   user.choice = "check_friend";
   json j = user;
   string r = j.dump();
-  send(cfd, r.c_str(), r.size(), 0);
-  recv(cfd, f, 4096, 0);
-  sleep(1);
-  // cout<<"f=="<<f<<endl;
+  sendMsg(cfd, r, r.size());
+  recvMsg(cfd, &f);
+  // sleep(1);
+  //  cout<<"f=="<<f<<endl;
   if (f[0] == '0')
   {
     cout << "没有此人！" << endl;
+    free(f);
     return;
   }
   else if (f[0] != '3')
   {
     cout << "不是好友" << endl;
+    free(f);
     return;
   }
   if (f[0] == '3')
   {
-    char f[1];
+    free(f);
+    char *ff;
     user.choice = "check_shield";
     json c = user;
     string h = c.dump();
-    send(cfd, h.c_str(), h.size(), 0);
-    recv(cfd, f, 1, 0);
-    if (f[0] == '0')
+    sendMsg(cfd, h, h.size());
+    recvMsg(cfd, &ff);
+    if (ff[0] == '0')
     {
       cout << user.friendname << "已经被你屏蔽，无法聊天！" << endl;
+      free(ff);
       return;
     }
+    free(ff);
     printf("请和%s愉快的聊天吧！\n", user.friendname.c_str());
   }
   cout << "1.开始聊天" << endl;
@@ -620,12 +728,12 @@ void Chat_sb(jjjson::usr user)
     user.choice = "offline_mes_fri";
     json k = user;
     string l = k.dump();
-    send(cfd, l.c_str(), l.size(), 0);
+    sendMsg(cfd, l, l.size());
     user.choice = "chat_sb"; //唤醒
     user.mes_fri = "";
     c = user;
     h = c.dump();
-    send(cfd, h.c_str(), h.size(), 0);
+    sendMsg(cfd, h, h.size());
     cout << "ok";
     while (1)
     {
@@ -641,15 +749,15 @@ void Chat_sb(jjjson::usr user)
         // user.choice = "quit_chatfri";
         json j = user;
         string l = j.dump();
-        send(cfd, l.c_str(), l.size(), 0);
+        sendMsg(cfd, l, l.size());
         break;
       }
       cout << LIGHT_BLUE << user.name << " :" << s << endl;
       cout << ctime(&t) << NONE << endl;
       json j = user;
       string l = j.dump();
-      send(cfd, l.c_str(), l.size(), 0);
-      sleep(0.02);
+      sendMsg(cfd, l, l.size());
+      // sleep(0.02);
     }
     recvv.join();
   }
@@ -670,25 +778,27 @@ void Chat_sb(jjjson::usr user)
 void Shield_fri(jjjson::usr user)
 {
 
-  char f[1];
+  char *f;
   cout << "请输入对象" << endl;
   cin >> user.friendname;
   user.choice = "check_friend";
   json j = user;
   string r = j.dump();
-  send(cfd, r.c_str(), r.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, r, r.size());
+  recvMsg(cfd, &f);
   if (f[0] == '0')
   {
     cout << "没有此人！" << endl;
+    free(f);
     return;
   }
   else if (f[0] != '3')
   {
     cout << "不是好友" << endl;
+    free(f);
     return;
   }
-
+  free(f);
   string s;
   cout << "1.屏蔽     2.取消屏蔽       3.退出" << endl;
   cin >> s;
@@ -707,108 +817,53 @@ void Shield_fri(jjjson::usr user)
     }
     json j = user;
     string s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
   }
-}
-
-void send_file(jjjson::usr user)
-{
-  string path;
-  cout << "请输入文件地址" << endl;
-  cin >> path;
-  cout << "请输保存文件名" << endl;
-  cin >> user.filename;
-  int fd;
-  if ((fd = open(path.c_str(), O_RDONLY)) < 0)
-  {
-    cout << "open error" << endl;
-    return;
-  }
-  json j;
-  string s;
-  int ret = 0;
-  user.choice = "recv_file";
-  struct stat st;
-  stat(path.c_str(), &st);
-  user.id = st.st_size;
-
-  j = user;
-  s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-
-  char x[4096];
-  memset(x, 0, 4096);
-  while ((ret = read(fd, x, 4095)) > 0)
-  { // user.buf.clear();
-    cout << "1" << endl;
-    x[ret] = '\0';
-    // user.buf=x;
-    cout << x << endl;
-    cout << ret << endl;
-    cout << strlen(x) << endl;
-    // j=user;
-    // s=j.dump();
-    sleep(0.1);
-    send(cfd, x, ret, 0);
-    memset(x, 0, 4096);
-    // sleep(1);
-    if (ret != 4095)
-    {
-      sleep(1);
-      char buf[5] = "over";
-      send(cfd, buf, sizeof(buf), 0);
-      break;
-    }
-    // user.buf.clear();
-  }
-  // sleep(1);
-  // char buf[5]="over";
-  // send(cfd,buf,4,0);
-  // sleep(1);
-  close(fd);
 }
 
 void Friend(jjjson::usr user)
 {
   while (1)
-  { // system("clear");
+  {
+    // system("clear");
     // Inform(user);
-    cout << "************friend" << endl;
-    user.choice = "look_friend";
+    // cout << "************friend" << endl;
+    // user.choice = "look_friend";
 
-    json j = user;
-    string s = j.dump();
+    // json j = user;
+    // string s = j.dump();
 
-    send(cfd, s.c_str(), s.size(), 0);
-    char tmpfri[4096];
-    s.clear();
-    memset(tmpfri, 0, sizeof(tmpfri));
-    recv(cfd, tmpfri, 4096, 0);
-    // tmpfri[strlen(tmpfri)] = '\0';
-    // cout << "thiuss" << tmpfri << endl;
-    s = tmpfri;
-    // printf("111\n");
-    // cout << "this" << s << endl;
-    //````````````````````````````````````````````````````
-    auto m = json::parse(s);
+    // sendMsg(cfd, s, s.size());
+    // char *tmpfri;
+    // s.clear();
+    // recvMsg(cfd, &tmpfri);
+    // // tmpfri[strlen(tmpfri)] = '\0';
+    // // cout << "thiuss" << tmpfri << endl;
+    // s = tmpfri;
+    // free(tmpfri);
+    // // printf("111\n");
+    // // cout << "this" << s << endl;
+    // //````````````````````````````````````````````````````
+    // auto m = json::parse(s);
 
-    auto fri = m.get<jjjson::Friend>();
-    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
-    {
-      //````````````````````````````````````````````````
-      char f[1];
-      memset(f, 0, 1);
-      recv(cfd, f, 1, 0);
-      cout << "************" << *iter << "*********";
-      if (f[0] == '0')
-      {
-        cout << "offline" << endl;
-      }
-      else
-      {
-        cout << "online" << endl;
-      }
-    }
+    // auto fri = m.get<jjjson::Friend>();
+    // for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
+    // {
+    //   //````````````````````````````````````````````````
+    //   char *f;
+    //   memset(f, 0, 1);
+    //   recvMsg(cfd, &f);
+    //   cout << "************" << *iter << "*********";
+    //   if (f[0] == '0')
+    //   {
+    //     cout << "offline" << endl;
+    //   }
+    //   else
+    //   {
+    //     cout << "online" << endl;
+    //   }
+    //   free(f);
+    // }
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.添加好友          **********  \n");
     printf("   ***********          2.删除好友           **********  \n");
@@ -846,20 +901,20 @@ void Friend(jjjson::usr user)
       system("clear");
       return;
     }
-    sleep(0.2);
+    // sleep(0.2);
   }
 }
 
 void Build_group(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   cout << "请输入想要创建的群" << endl;
   cin >> user.group;
   user.choice = "build_group";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] == '1')
   {
     cout << "创建成功" << endl;
@@ -868,18 +923,19 @@ void Build_group(jjjson::usr user)
   {
     cout << "该群已经创建" << endl;
   }
+  free(f);
 }
 
 void Join_group(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   cout << "请输入想加入的群聊" << endl;
   cin >> user.group;
   user.choice = "look_g";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
@@ -889,7 +945,7 @@ void Join_group(jjjson::usr user)
     user.choice = "join_group";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
     cout << "成功发送请求" << endl;
   }
   else if (f[0] == '3')
@@ -900,6 +956,7 @@ void Join_group(jjjson::usr user)
   {
     cout << "已经是群成员" << endl;
   }
+  free(f);
 }
 
 void deal_group_req(jjjson::usr user)
@@ -908,15 +965,15 @@ void deal_group_req(jjjson::usr user)
   while (1)
   {
     flag = 0;
-    char buf[4096];
-    memset(buf, 0, sizeof(buf));
+    char *buf;
     user.choice = "group_req";
     json j = user;
     string s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
+    sendMsg(cfd, s, s.size());
+    recvMsg(cfd, &buf);
     buf[strlen(buf)] = '\0';
     string tmp(buf);
+    free(buf);
     j = json::parse(tmp);
 
     auto g = j.get<jjjson::Group>();
@@ -964,7 +1021,7 @@ void deal_group_req(jjjson::usr user)
         user.friendname = s;
         json j = user;
         string s = j.dump();
-        send(cfd, s.c_str(), s.size(), 0);
+        sendMsg(cfd, s, s.size());
       }
       break;
     }
@@ -979,14 +1036,14 @@ void check_member(jjjson::usr user)
 {
   json j;
   string s;
-  char buf[4096];
-  memset(buf, 0, 4096);
+  char *buf;
   user.choice = "check_member";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 4096, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &buf);
   string t(buf);
+  free(buf);
   j = json::parse(t);
   auto tmp = j.get<jjjson::Group>();
   cout << "***********" << user.group << "************" << endl;
@@ -1023,21 +1080,24 @@ void check_member(jjjson::usr user)
 void set_manager(jjjson::usr user)
 {
 
-  char f[1];
+  char *f;
   json j;
   string s;
   user.choice = "look_g";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] != '6')
   {
     cout << "不是群主，无权操作" << endl;
+    free(f);
     return;
   }
+  free(f);
   while (1)
   {
+    char *ff;
     cout << "******1.添加管理员        2.取消管理员        3.退出******" << endl;
     string select;
     cin >> select;
@@ -1050,23 +1110,27 @@ void set_manager(jjjson::usr user)
       user.choice = "look_g";
       j = user;
       s = j.dump();
-      send(cfd, s.c_str(), s.size(), 0);
-      recv(cfd, f, 1, 0);
+      sendMsg(cfd, s, s.size());
+      recvMsg(cfd, &ff);
       user.name = tmpname;
-      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
+      if (ff[0] != '4' && ff[0] != '5' && ff[0] != '6')
       {
         cout << "不是群成员" << endl;
+        free(ff);
         return;
       }
-      if (f[0] == '5' || f[0] == '6')
+      if (ff[0] == '5' || ff[0] == '6')
       {
         cout << "已是管理员" << endl;
+        free(ff);
         return;
       }
       user.choice = "set_manager";
+      free(ff);
     }
     else if (select == "2")
     {
+      char *fff;
       string tmpname = user.name;
       cout << "请输入想要撤销的管理员" << endl;
       cin >> user.name;
@@ -1074,25 +1138,29 @@ void set_manager(jjjson::usr user)
       user.choice = "look_g";
       j = user;
       s = j.dump();
-      send(cfd, s.c_str(), s.size(), 0);
-      recv(cfd, f, 1, 0);
+      sendMsg(cfd, s, s.size());
+      recvMsg(cfd, &fff);
       user.name = tmpname;
-      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
+      if (fff[0] != '4' && fff[0] != '5' && fff[0] != '6')
       {
         cout << "不是群成员" << endl;
+        free(fff);
         return;
       }
-      if ((f[0] != '5') && (f[0] != '6'))
+      if ((fff[0] != '5') && (fff[0] != '6'))
       {
         cout << "不是管理员" << endl;
+        free(fff);
         return;
       }
-      else if (f[0] == '6')
+      else if (fff[0] == '6')
       {
         cout << "此人是群主无权更改" << endl;
+        free(fff);
         return;
       }
       user.choice = "canel_manager";
+      free(fff);
     }
     else
     {
@@ -1100,25 +1168,27 @@ void set_manager(jjjson::usr user)
     }
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
   }
 }
 
 void kick_sb(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   json j;
   string s;
   user.choice = "look_g";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] != '6' && f[0] != '5')
   {
     cout << "不是管理员，无权操作" << endl;
+    free(f);
     return;
   }
+  free(f);
   while (1)
   {
     check_member(user);
@@ -1128,6 +1198,7 @@ void kick_sb(jjjson::usr user)
     cin >> select;
     if (select == "1")
     {
+      char *ff;
       string tmpname = user.name;
       cout << "请输入想要踢的人" << endl;
       cin >> user.name;
@@ -1135,23 +1206,26 @@ void kick_sb(jjjson::usr user)
       user.choice = "look_g";
       j = user;
       s = j.dump();
-      send(cfd, s.c_str(), s.size(), 0);
-      recv(cfd, f, 1, 0);
+      sendMsg(cfd, s, s.size());
+      recvMsg(cfd, &ff);
       user.name = tmpname;
-      if (f[0] != '4' && f[0] != '5' && f[0] != '6')
+      if (ff[0] != '4' && ff[0] != '5' && ff[0] != '6')
       {
         cout << "不是群成员" << endl;
+        free(ff);
         return;
       }
-      if (f[0] == '5' || f[0] == '6')
+      if (ff[0] == '5' || ff[0] == '6')
       {
         cout << "是管理员，无法踢人" << endl;
+        free(ff);
         return;
       }
+      free(ff);
       user.choice = "kick_sb";
       j = user;
       s = j.dump();
-      send(cfd, s.c_str(), s.size(), 0);
+      sendMsg(cfd, s, s.size());
     }
     else
     {
@@ -1173,7 +1247,7 @@ void withdraw_group(jjjson::usr user)
     string s;
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
   }
   else
   {
@@ -1191,18 +1265,19 @@ void *recv_chat_group(jjjson::usr arg)
   while (1)
   {
 
-    char buf[4096];
-    memset(buf, 0, 4096);
+    char *buf;
 
-    int ret = recv(cfd, buf, 4096, 0);
+    int ret = recvMsg(cfd, &buf);
     if ((strcmp(buf, "quit")) == 0)
     {
       cout << "gameover" << endl;
+      free(buf);
       break;
     }
     else
     {
       string t(buf);
+      free(buf);
       // cout<<"khj--"<<t<<endl;
       json j = json::parse(t);
       auto q = j.get<jjjson::Gro_chat>();
@@ -1223,14 +1298,15 @@ void Check__group_history(jjjson::usr user)
 {
   json j;
   string s;
-  char buf[10000];
+  char *buf;
   string value;
   user.choice = "check_group_history";
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, buf, 10000, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &buf);
   string t(buf);
+  free(buf);
   cout << t << endl;
   j = json::parse(t);
   auto tmp = j.get<jjjson::Group>();
@@ -1260,12 +1336,12 @@ void chat_group(jjjson::usr user)
     //  json k = user;
     //  string l = k.dump();
     string l;
-    send(cfd, l.c_str(), l.size(), 0);
+    sendMsg(cfd, l, l.size());
     user.choice = "chat_group"; //先唤醒聊天状态
     user.mes_fri = "";
     json j = user;
     l = j.dump();
-    send(cfd, l.c_str(), l.size(), 0);
+    sendMsg(cfd, l, l.size());
     while (1)
     {
       string m;
@@ -1284,14 +1360,14 @@ void chat_group(jjjson::usr user)
         // user.choice = "quit_chatgro";
         json j = user;
         string l = j.dump();
-        send(cfd, l.c_str(), l.size(), 0);
+        sendMsg(cfd, l, l.size());
         break;
       }
       cout << LIGHT_BLUE << user.name << " :" << s << endl;
       cout << ctime(&t) << NONE << endl;
       json j = user;
       string l = j.dump();
-      send(cfd, l.c_str(), l.size(), 0);
+      sendMsg(cfd, l, l.size());
     }
     recvv.join();
   }
@@ -1335,16 +1411,16 @@ void send_file_gro(jjjson::usr user)
   user.id = st.st_size;
   j = user;
   s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
+  sendMsg(cfd, s, s.size());
 
   long long retw = 0, sum = 0;
   char x[4096];
   memset(x, 0, 4096);
-  sleep(1);
+
   while (1)
   {
     ret = read(fd, x, 4096);
-    sleep(0.1);
+    x[ret] = '\0';
     retw = send(cfd, x, ret, 0);
     if (retw > 0)
       sum += retw;
@@ -1361,7 +1437,7 @@ void send_file_gro(jjjson::usr user)
       break;
     }
   }
-  sleep(1);
+
   close(fd);
 }
 
@@ -1374,13 +1450,13 @@ void recv_file_gro(jjjson::usr user)
     string s;
     int flag = 0;
     user.choice = "check_file_gro";
-    char buf[4096];
+    char *buf;
     j = user;
     s = j.dump();
-    memset(buf, 0, 4096);
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
+    sendMsg(cfd, s, s.size());
+    recvMsg(cfd, &buf);
     string t(buf);
+    free(buf);
     cout << t << endl;
     j = json::parse(t);
     auto x = j.get<jjjson::Gro_chat>();
@@ -1416,34 +1492,34 @@ void recv_file_gro(jjjson::usr user)
       cout << "create file error" << endl;
       continue;
     }
-    memset(buf, 0, 4096);
     long long size = 0;
     long long tmplen = 0;
     user.filename = q;
     user.choice = "file_size";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
-    string d(buf);
+    sendMsg(cfd, s, s.size());
+    char *bu;
+    recvMsg(cfd, &bu);
+    string d(bu);
+    free(bu);
     j = json::parse(d);
     auto tt = j.get<jjjson::usr>();
     size = tt.id;
-    sleep(1);
 
     user.filename = q;
     user.choice = "send_file_gro";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
 
     long long ret = 0, ret2 = 0;
-    memset(buf, 0, 4096);
+
     while (1)
     {
-
-      ret2 = recv(cfd, buf, 4095, 0);
-      ret = write(fd, buf, ret2);
+      char b[4096];
+      ret2 = recv(cfd, b, 4096, 0);
+      ret = write(fd, b, ret2);
       if (ret > 0)
         tmplen += ret;
       if (tmplen >= size)
@@ -1451,7 +1527,7 @@ void recv_file_gro(jjjson::usr user)
         break;
       }
 
-      memset(buf, 0, 4096);
+      memset(b, 0, 4096);
     }
     close(fd);
   }
@@ -1459,7 +1535,7 @@ void recv_file_gro(jjjson::usr user)
 
 void Enter_group(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   cout << "请输入进入的群聊（0退出）" << endl;
   cin >> user.group;
   if (user.group == "0")
@@ -1467,19 +1543,22 @@ void Enter_group(jjjson::usr user)
   user.choice = "look_g";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
-  //sleep(1);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
+  // sleep(1);
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
+    free(f);
     return;
   }
   else if (f[0] != '4' && f[0] != '6' && f[0] != '5')
   {
     cout << "你不是该群成员" << endl;
+    free(f);
     return;
   }
+  free(f);
   while (1)
   {
     // Inform(user);
@@ -1531,24 +1610,27 @@ void Enter_group(jjjson::usr user)
 
 void disband_group(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   cout << "请输入解散的群聊" << endl;
   cin >> user.group;
   user.choice = "look_g";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
+    free(f);
     return;
   }
   else if (f[0] != '6')
   {
     cout << "你不是该群群主" << endl;
+    free(f);
     return;
   }
+  free(f);
   cout << "*****1.确认     2.取消*****" << endl;
   string a;
   cin >> a;
@@ -1559,7 +1641,7 @@ void disband_group(jjjson::usr user)
     user.choice = "disband_group";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
+    sendMsg(cfd, s, s.size());
   }
 }
 
@@ -1568,18 +1650,18 @@ void Group(jjjson::usr user)
   while (1)
   {
     // Inform(user);
-    char buf[4096];
-    memset(buf, 0, 4096);
+    char *buf;
     string s;
     json j;
     user.choice = "look_group";
     j = user;
     s = j.dump();
-    send(cfd, s.c_str(), s.size(), 0);
-    recv(cfd, buf, 4096, 0);
-    //sleep(1);
+    sendMsg(cfd, s, s.size());
+    recvMsg(cfd, &buf);
+    // sleep(1);
     buf[strlen(buf)] = '\0';
     string t(buf);
+    free(buf);
     j = json::parse(t);
     auto tmp = j.get<jjjson::myGroup>();
     cout << "*********群名       ********身份********" << endl;
@@ -1633,16 +1715,23 @@ void Group(jjjson::usr user)
 
 int Logout(jjjson::usr user)
 {
-  char f[1];
+  char *f;
   user.choice = "logout";
   json j = user;
   string s = j.dump();
-  send(cfd, s.c_str(), s.size(), 0);
-  recv(cfd, f, 1, 0);
+  sendMsg(cfd, s, s.size());
+  recvMsg(cfd, &f);
   if (f[0] == '1')
+  {
+    free(f);
     return 1;
+  }
   else
+
+  {
+    free(f);
     return 0;
+  }
 }
 
 int menu(jjjson::usr user)
@@ -1686,24 +1775,25 @@ int menu(jjjson::usr user)
 
     else if (select == "6")
     {
-      user.choice = "offline";
-      json j;
-      j = user;
-      string ifo = j.dump();
-      char buf[1];
-      send(cfd, ifo.c_str(), ifo.size(), 0);
+       user.choice = "offline";
+       json j;
+       j = user;
+       string ifo = j.dump();
+       char *buf;
+       sendMsg(cfd, ifo, ifo.size());
 
-      read(cfd, buf, 1);
-      if (strcmp(buf, "1") == 0)
-      {
-        cout << "退出成功！\n";
-      }
-      // system("clear");
+       recvMsg(cfd, &buf);
+       if (strcmp(buf, "1") == 0)
+       {
+       cout << "退出成功！\n";
+       }
+       free(buf);
+      // // system("clear");
       break;
     }
     else
     {
-      cout<<"请输入正确选项！"<<endl;
+      cout << "请输入正确选项！" << endl;
     }
   }
   return 0;
@@ -1733,13 +1823,13 @@ void login()
   user.question = "";
   user.time = 0;
   user.status = 0;
-  send(cfd, ifo.c_str(), ifo.size(), 0);
+  sendMsg(cfd, ifo.c_str(), ifo.size());
   read(cfd, buf, 1);
   if (strcmp(buf, "1") == 0)
   {
     cout << "login sucuess!" << endl;
     pthread_t t;
-    pthread_create(&t, NULL, Inform, (void *)&user);
+    // pthread_create(&t, NULL, Inform, (void *)&user);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)
