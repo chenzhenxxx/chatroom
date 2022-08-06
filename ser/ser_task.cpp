@@ -226,7 +226,7 @@ void Find_pwd(jjjson::usr user)
     auto x = i.get<jjjson::usr>();
 
     sendMsg(user.fd, value, value.size());
-    // sleep(1);
+    
     // recv(user.fd,buf,4096,0);
     // string t(buf);
     // cout<<"thisd"<<buf<<endl;
@@ -843,7 +843,7 @@ void *Recv_mes(void *arg)
             printf("over %d\n", user.fd);
             // char buf[20]="quit";
             // cout<<user.fd<<endl;
-            // sleep(1);
+            
             // send(user.fd,buf,20,0);
             break;
         }
@@ -1843,7 +1843,7 @@ void *Inform(void *arg)
 
     while (1)
     {
-        sleep(0.5);
+        
         string value;
         value.clear();
         pthread_mutex_lock(&mutexx);
@@ -1949,7 +1949,7 @@ void *task(void *arg)
             s += user.name;
             auto status = db->Get(leveldb::ReadOptions(), s, &value);
             sendMsg(user.fd, value, value.size());
-            // sleep(1);
+           
             json j = json::parse(value);
             auto tmp = j.get<jjjson::Friend>();
             for (auto it = tmp.myfri.begin(); it != tmp.myfri.end(); it++)

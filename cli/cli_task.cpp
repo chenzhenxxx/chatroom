@@ -680,7 +680,7 @@ void Chat_sb(jjjson::usr user)
   string r = j.dump();
   sendMsg(cfd, r, r.size());
   recvMsg(cfd, &f);
-  // sleep(1);
+  
   //  cout<<"f=="<<f<<endl;
   if (f[0] == '0')
   {
@@ -757,7 +757,7 @@ void Chat_sb(jjjson::usr user)
       json j = user;
       string l = j.dump();
       sendMsg(cfd, l, l.size());
-      // sleep(0.02);
+      
     }
     recvv.join();
   }
@@ -901,7 +901,7 @@ void Friend(jjjson::usr user)
       system("clear");
       return;
     }
-    // sleep(0.2);
+    
   }
 }
 
@@ -1545,7 +1545,7 @@ void Enter_group(jjjson::usr user)
   string s = j.dump();
   sendMsg(cfd, s, s.size());
   recvMsg(cfd, &f);
-  // sleep(1);
+ 
   if (f[0] == '1')
   {
     cout << "该群不存在" << endl;
@@ -1658,7 +1658,7 @@ void Group(jjjson::usr user)
     s = j.dump();
     sendMsg(cfd, s, s.size());
     recvMsg(cfd, &buf);
-    // sleep(1);
+    
     buf[strlen(buf)] = '\0';
     string t(buf);
     free(buf);
@@ -1829,7 +1829,7 @@ void login()
   {
     cout << "login sucuess!" << endl;
     pthread_t t;
-    // pthread_create(&t, NULL, Inform, (void *)&user);
+     pthread_create(&t, NULL, Inform, (void *)&user);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)

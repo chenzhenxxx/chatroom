@@ -98,14 +98,14 @@ int main()
                     json j = json::parse(s);
                     jjjson::usr tmp = j.get<jjjson::usr>();
                     tmp.fd = tmpfd;
-                    //if (tmp.choice == "inform")
-                    //{
-                        // Inform((void*)&tmp);
-                        //pthread_create(&ttid, NULL, Inform, (void *)&tmp);
-                   // }
-                    //else
+                    if (tmp.choice == "inform")
+                    {
+                         //Inform((void*)&tmp);
+                         pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                    }
+                    
                      
-                    if(tmp.choice=="recv_file_fri")
+                    else if(tmp.choice=="recv_file_fri")
                     {
                          Recv_file_fri(tmp);
                     }
