@@ -136,7 +136,7 @@ void *Inform(void *arg)
   while (1)
   {
     char *buf;
-    while ((ret = recvMsg(u.fd, &buf)) <= 0)
+  ret = recvMsg(u.fd, &buf);
       ;
     // cout<<"lll:::"<<buf<<endl;
 
@@ -161,7 +161,7 @@ void *Inform(void *arg)
     // cout << "*****inform::" << *it<< endl;
     //}
 
-    cout << "this:" << buf << endl;
+    cout << "*****inform::" << buf << endl;
     free(buf);
   }
 }
@@ -515,12 +515,18 @@ void Check_history(jjjson::usr user)
 
 void send_file_fri(jjjson::usr user)
 {
+  while(1)
+  {
   char path[1000], name[100];
   memset(path, 0, 1000);
   memset(name, 0, 100);
   int cnt = 0;
-  cout << "请输入文件地址:" << endl;
+  cout << "请输入文件地址:(输入0退出)" << endl;
   cin >> path;
+  if(strcmp(path,"0")==0)
+  {
+    break;
+  }
   int sign;
   for (int i = strlen(path) - 1; i >= 0; i--)
   {
@@ -577,6 +583,7 @@ void send_file_fri(jjjson::usr user)
   }
 
   close(fd);
+  }
 }
 
 void recv_file_fri(jjjson::usr user)
@@ -827,45 +834,45 @@ void Friend(jjjson::usr user)
 {
   while (1)
   {
-    // system("clear");
-    // Inform(user);
-    // cout << "************friend" << endl;
-    // user.choice = "look_friend";
+    //system("clear");
+    //Inform(user);
+    cout << "************friend" << endl;
+    user.choice = "look_friend";
 
-    // json j = user;
-    // string s = j.dump();
+    json j = user;
+    string s = j.dump();
 
-    // sendMsg(cfd, s, s.size());
-    // char *tmpfri;
-    // s.clear();
-    // recvMsg(cfd, &tmpfri);
-    // // tmpfri[strlen(tmpfri)] = '\0';
-    // // cout << "thiuss" << tmpfri << endl;
-    // s = tmpfri;
-    // free(tmpfri);
-    // // printf("111\n");
-    // // cout << "this" << s << endl;
-    // //````````````````````````````````````````````````````
-    // auto m = json::parse(s);
+    sendMsg(cfd, s, s.size());
+    char *tmpfri;
+    s.clear();
+    recvMsg(cfd, &tmpfri);
+    // tmpfri[strlen(tmpfri)] = '\0';
+    // cout << "thiuss" << tmpfri << endl;
+    s = tmpfri;
+    free(tmpfri);
+    // printf("111\n");
+    // cout << "this" << s << endl;
+    //````````````````````````````````````````````````````
+    auto m = json::parse(s);
 
-    // auto fri = m.get<jjjson::Friend>();
-    // for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
-    // {
-    //   //````````````````````````````````````````````````
-    //   char *f;
-    //   memset(f, 0, 1);
-    //   recvMsg(cfd, &f);
-    //   cout << "************" << *iter << "*********";
-    //   if (f[0] == '0')
-    //   {
-    //     cout << "offline" << endl;
-    //   }
-    //   else
-    //   {
-    //     cout << "online" << endl;
-    //   }
-    //   free(f);
-    // }
+    auto fri = m.get<jjjson::Friend>();
+    for (auto iter = fri.myfri.begin(); iter != fri.myfri.end(); iter++)
+    {
+      //````````````````````````````````````````````````
+      char *f;
+      memset(f, 0, 1);
+      recvMsg(cfd, &f);
+      cout << "************" << *iter << "*********";
+      if (f[0] == '0')
+      {
+        cout << "offline" << endl;
+      }
+      else
+      {
+        cout << "online" << endl;
+      }
+      free(f);
+    }
     printf("     ***********         welcome %s       **********  \n", user.name.c_str());
     printf("    ***********         1.添加好友          **********  \n");
     printf("   ***********          2.删除好友           **********  \n");
@@ -1382,10 +1389,16 @@ void chat_group(jjjson::usr user)
 }
 
 void send_file_gro(jjjson::usr user)
-{
+{ 
+  while(1)
+  {
   char path[1000], name[100];
-  cout << "请输入文件地址" << endl;
+  cout << "请输入文件地址(输入0退出)" << endl;
   cin >> path;
+  if(strcmp(path,"0")==0)
+  {
+    break;
+  }
   int sign = 0, cnt = 0;
   for (int i = strlen(path) - 1; i >= 0; i--)
   {
@@ -1443,6 +1456,7 @@ void send_file_gro(jjjson::usr user)
   }
 
   close(fd);
+  }
 }
 
 void recv_file_gro(jjjson::usr user)
@@ -1833,7 +1847,7 @@ void login()
   {
     cout << "login sucuess!" << endl;
     pthread_t t;
-     //pthread_create(&t, NULL, Inform, (void *)&user);
+     pthread_create(&t, NULL, Inform, (void *)&user);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)
