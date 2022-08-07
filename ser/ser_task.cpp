@@ -710,6 +710,7 @@ void Chat_sb(jjjson::usr user)
     json j;
     db->Get(leveldb::ReadOptions(), user.name, &v);
     j = json::parse(v);
+    
     auto m = j.get<jjjson::usr>();
     m.choice = "chat_sb";
     m.friendname = user.friendname;
@@ -739,36 +740,34 @@ void Chat_sb(jjjson::usr user)
     db->Get(leveldb::ReadOptions(), s, &value); //先放到对方的未读消息并存到对方的消息记录
                                                 // cout << "valie:" << value << endl;
     j = json::parse(value);
+    
+    
     // printf("*****\n");
-    auto tmp = j.get<jjjson::Fri_chat>();
+    auto mp = j.get<jjjson::Fri_chat>();
     // cout << "Jj" << j << endl;
     string h;
     h = user.name + " :" + user.mes_fri;
-    if (tmp.history.size() > 20) // 超过50条消息就把前面的删了
+    if (mp.history.size() > 20) // 超过50条消息就把前面的删了
     {
-        tmp.history.erase(tmp.history.begin());
-        tmp.history.push_back(h);
-        tmp.time.erase(tmp.time.begin());
-        tmp.time.push_back(user.time);
+        mp.history.erase(mp.history.begin());
+        mp.history.push_back(h);
+        mp.time.erase(mp.time.begin());
+        mp.time.push_back(user.time);
     }
     else
     {
-        tmp.history.push_back(h);
-        tmp.time.push_back(user.time);
+        mp.history.push_back(h);
+        mp.time.push_back(user.time);
     }
-    // cout << "))))))))))" << endl;
-    // cout << user.mes_fri << endl;
-    tmp.unread.push_back(user.mes_fri);
-    tmp.unread_t.push_back(user.time);
-    j = tmp;
-    // cout<<j<<endl;
+    mp.unread.push_back(user.mes_fri);
+    mp.unread_t.push_back(user.time);
+    j = mp;
     db->Delete(leveldb::WriteOptions(), s);
     db->Put(leveldb::WriteOptions(), s, j.dump());
-    // printf("2\n");
-    // printf("***\n");
 
     s = user.name;
     s += user.friendname;
+    cout<<"table"<<s<<endl;
     db->Get(leveldb::ReadOptions(), s, &value); //放到自己的消息记录
     j = json::parse(value);
     auto t = j.get<jjjson::Fri_chat>();
@@ -800,6 +799,7 @@ void Chat_sb(jjjson::usr user)
         string op;
         db->Get(leveldb::ReadOptions(), dfg, &op);
         j = json::parse(op);
+        cout<<"6"<<endl;
         auto hh = j.get<jjjson::mymessage>();
 
         hh.mes.push_back(t);
@@ -814,6 +814,7 @@ void Chat_sb(jjjson::usr user)
         h += user.name;
         db->Get(leveldb::ReadOptions(), h, &value);
         j = json::parse(value);
+        cout<<"7"<<endl;
         auto f = j.get<jjjson::Fri_chat>();
         sendMsg(i.fd, value, value.size());
         f.unread.clear();
@@ -1869,9 +1870,9 @@ void *Inform(void *arg)
     }
 }
 
-void *task(void *arg)
+void *task(jjjson::usr arg)
 {
-    pthread_detach(pthread_self());
+    //pthread_detach(pthread_self());
     // cout << last_choice << endl;
     char buf[4096];
     memset(buf, 0, 4096);
@@ -1901,7 +1902,8 @@ void *task(void *arg)
         // cout << s << endl;
         // json t = json::parse(s);
         // cout<<"1"<<endl;
-        jjjson::usr user = *(jjjson::usr *)arg;
+        jjjson::usr user = arg;
+        cout<<"user_fri"<<user.mes_fri<<endl;
         user.fd = tmpfd;
         jjjson::usr tmp = user;
         // cout << user.mes_fri << endl;

@@ -735,14 +735,16 @@ void Chat_sb(jjjson::usr user)
     h = c.dump();
     sendMsg(cfd, h, h.size());
     cout << "ok";
+    getchar();
     while (1)
     {
       string s;
       user.choice = "chat_sb";
-      cin >> s;
+      getline(cin,s);
       time_t t;
       t = time(NULL);
       user.mes_fri = s;
+      
       user.time = t;
       if (s == "quit")
       {
@@ -1342,13 +1344,15 @@ void chat_group(jjjson::usr user)
     json j = user;
     l = j.dump();
     sendMsg(cfd, l, l.size());
+     cout << "ok";
+    getchar();
     while (1)
     {
       string m;
       string s;
       s = "from:" + user.name + ":";
       user.choice = "chat_group";
-      cin >> m;
+      getline(cin,m);
       s += m;
       time_t t;
       t = time(NULL);
@@ -1829,7 +1833,7 @@ void login()
   {
     cout << "login sucuess!" << endl;
     pthread_t t;
-     pthread_create(&t, NULL, Inform, (void *)&user);
+     //pthread_create(&t, NULL, Inform, (void *)&user);
     menu(user);
   }
   else if (strcmp(buf, "2") == 0)

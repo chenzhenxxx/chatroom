@@ -41,7 +41,7 @@ int main()
             if (errno == EINTR)
                 continue;
             // 出错,退出
-            //break;
+            // break;
         }
         else if (n == 0)
         {
@@ -66,9 +66,6 @@ int main()
                     // setsockopt(cfd,IPPROTO_TCP,TCP_KEEPINTVL,&interval,sizeof(interval));
                     // int cnt=10;//重发次数
                     // setsockopt(cfd,IPPROTO_TCP,TCP_KEEPCNT,&cnt,sizeof(cnt));
-    
-
-
 
                     epoll_event evv;
                     int flag = fcntl(cfd, F_GETFL);
@@ -80,8 +77,9 @@ int main()
                 }
 
                 else
-                {   if(last_choice=="recv_file_fri"||last_choice=="recv_file_gro")
-                    continue;
+                {
+                    if (last_choice == "recv_file_fri" || last_choice == "recv_file_gro")
+                        continue;
                     pthread_t ttid;
                     char *buf;
                     tmpfd = events[i].data.fd;
@@ -96,25 +94,31 @@ int main()
                     free(buf);
                     cout << "asd" << s << endl;
                     json j = json::parse(s);
+
                     jjjson::usr tmp = j.get<jjjson::usr>();
+
                     tmp.fd = tmpfd;
                     if (tmp.choice == "inform")
                     {
-                         //Inform((void*)&tmp);
-                         pthread_create(&ttid, NULL, Inform, (void *)&tmp);
+                        // Inform((void*)&tmp);
+                        pthread_create(&ttid, NULL, Inform, (void *)&tmp);
                     }
-                    
-                     
-                    else if(tmp.choice=="recv_file_fri")
+
+                    else if (tmp.choice == "recv_file_fri")
                     {
-                         Recv_file_fri(tmp);
+                        Recv_file_fri(tmp);
                     }
-                    else if(tmp.choice=="recv_file_gro")
+                    else if (tmp.choice == "recv_file_gro")
                     {
                         Recv_file_gro(tmp);
                     }
-                    else 
-                        pthread_create(&tid, NULL, task, (void *)&tmp);
+                    else
+                    {
+
+                        // pthread_create(&tid, NULL, task, (void *)&tmp);
+                        thread Task(task, tmp);
+                        Task.join();
+                    }
                 }
             }
         }
