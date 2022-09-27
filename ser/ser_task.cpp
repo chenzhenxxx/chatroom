@@ -1651,7 +1651,7 @@ void Recv_file_fri(jjjson::usr user)
     pthread_t tid;
     last_fd = user.fd;
     last_len = user.id;
-    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    string path = "/home/czx/chatroom/" + user.filename;
     last_path = path;
     string value;
     json j;
@@ -1685,7 +1685,7 @@ void Send_file_fri(jjjson::usr user)
 {
     long long ret = 0, sum = 0;
     long long retw = 0;
-    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    string path = "/home/czx/chatroom/" + user.filename;
     int fd;
     if ((fd = open(path.c_str(), O_RDONLY)) < 0)
     {
@@ -1790,14 +1790,14 @@ void Recv_file_gro(jjjson::usr user)
         db->Put(leveldb::WriteOptions(), s, j.dump());
     }
 
-    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    string path = "/home/czx/chatroom/" + user.filename;
     last_path = path;
     pthread_create(&tid, NULL, R_file, NULL);
 }
 
 void Send_file_gro(jjjson ::usr user)
 {
-    string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+    string path = "/home/czx/chatroom/" + user.filename;
     int fd;
     if ((fd = open(path.c_str(), O_RDONLY)) < 0)
     {
@@ -2242,7 +2242,7 @@ void *task(jjjson::usr arg)
         {
             json j;
             string s;
-            string path = "/home/chenzhenxxx/chatroom/" + user.filename;
+            string path = "/home/czx/chatroom/" + user.filename;
             struct stat st;
             lstat(path.c_str(), &st);
             jjjson ::usr k;

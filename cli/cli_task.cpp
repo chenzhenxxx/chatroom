@@ -1,4 +1,4 @@
-#include "json_use.h"
+#include "json_use.hpp"
 int cfd;
 
 int readn(int fd, char *buf, int size)
@@ -120,7 +120,7 @@ void *Inform(void *arg)
   int ccfd = socket(AF_INET, SOCK_STREAM, 0);
   bzero(&ser, sizeof(ser));
   ser.sin_family = AF_INET;
-  inet_pton(AF_INET, "192.168.30.111", &ser.sin_addr);
+  inet_pton(AF_INET, "192.168.30.110", &ser.sin_addr);
   ser.sin_port = htons(PORT);
   // // pthread_create(&tid,NULL,Recv,void *base)
   connect(ccfd, (struct sockaddr *)&ser, sizeof(ser));

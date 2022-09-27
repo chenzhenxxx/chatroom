@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include<pthread.h>
 #include <string>
-#include<netinet/tcp.h>
 #include<fcntl.h>
 #include<sys/types.h>
 #include <sys/socket.h>
@@ -23,7 +22,7 @@
 #include <unistd.h>
 #include<sys/socket.h>
 #include <arpa/inet.h>
-#include "json.hpp" //引入json.hpp，该文件已经放在系统默认路径：/usr/local/include/nlohmann/json.hpp
+#include "json.hpp"//引入json.hpp，该文件已经放在系统默认路径：/usr/local/include/nlohmann/json.hpp
 #include<leveldb/db.h>
 #include<sys/sendfile.h>
 #define NONE "\033[m"
@@ -57,6 +56,7 @@ using json = nlohmann::json;
 int tmpfd;
 int epollfd;
 pthread_t tid;
+pthread_mutex_t mutexx;
 namespace jjjson
 {
     class usr
@@ -125,7 +125,7 @@ namespace jjjson
         vector<time_t> unread_t;
         vector<string> filename;
     };
-     class mymessage
+    class mymessage
     {   public:
         vector<string> mes;
     };
@@ -219,7 +219,7 @@ namespace jjjson
         j.at("unread_t").get_to(p.unread_t);
         j.at("filename").get_to(p.filename);
     }
-    void to_json(json &j,const mymessage &p)
+     void to_json(json &j,const mymessage &p)
     {
         j=json{{"mes",p.mes}};
     }
